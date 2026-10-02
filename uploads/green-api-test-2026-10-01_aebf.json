@@ -1,0 +1,46 @@
+{
+  "vacancy_summary": {
+    "title": "Фронтенд разработчик React",
+    "company": "ООО Грин-Апи (GREEN-API)",
+    "stack_requirements": [
+      "React",
+      "JavaScript",
+      "Git",
+      "TypeScript/JavaScript (реверс-инжиниринг модулей на ts/js)",
+      "Аккуратный и понятный код"
+    ],
+    "other_requirements": [
+      "Техническое образование",
+      "Высокая автономность",
+      "Желание расти и развиваться"
+    ],
+    "work_format": "Полная занятость, 5/2, 8 часов; удалённо или в офисе в Химках, также есть офис в Астане",
+    "salary": "Не указана; белая зарплата, уровень обсуждается индивидуально с финальным кандидатом",
+    "experience": "1–3 года"
+  },
+  "test_title": "Тестовое задание на должность «Фронтенд разработчик React»",
+  "test_summary": [
+    "Разработать простой пользовательский интерфейс для отправки и получения текстовых сообщений в MAX; если MAX недоступен, допускаются WhatsApp или Telegram.",
+    "Использовать сервис GREEN-API для MAX.",
+    "Взять за прототип внешний вид чата web.max.ru и реализовать минимальный набор функций.",
+    "Отправку сообщений реализовать методом GREEN-API SendMessage.",
+    "Получение сообщений реализовать через GREEN-API Technology HTTP API.",
+    "Использовать React.",
+    "Сценарий: пользователь вводит idInstance и apiTokenInstance, номер телефона получателя, создаёт чат, отправляет текст; получатель отвечает в MAX, ответ отображается в чате."
+  ],
+  "deadline_days": 5,
+  "submit_to": "hr@green-api.com",
+  "format_required": {
+    "subject": "Тестовое задание на должность - Фронтенд разработчик React",
+    "items": [
+      "Резюме в PDF с указанием Telegram для связи",
+      "Ссылка на репозиторий GitHub",
+      "Ссылка на инструкцию для локального запуска проекта",
+      "Ссылка на сервис в Интернете (желательно)",
+      "Ссылка на скриншоты или видео-презентацию (при наличии)"
+    ],
+    "also_include": "Предпочтительный формат работы: удалёнка, офис Химки или офис Астана"
+  },
+  "open_ok": true,
+  "notes": "Google Drive preview opened without a sign-in wall; the one-page PDF was read in-browser only. The hh.ru vacancy was accessible without a login wall. Nothing was downloaded, solved, or submitted, and no hh.ru messages were sent."
+}

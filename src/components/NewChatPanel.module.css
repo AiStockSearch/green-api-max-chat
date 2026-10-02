@@ -1,0 +1,71 @@
+.root {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.modal {
+  border-bottom: none;
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-width: 400px;
+}
+
+.modalTitle {
+  margin: 0 0 var(--space-lg);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-error-text);
+}
+
+/* Компактная inline-версия в сайдбаре */
+.root:not(.modal) .form {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.root:not(.modal) .label {
+  flex: 1;
+  min-width: 140px;
+}
+
+.root:not(.modal) .label span:last-of-type {
+  display: none;
+}
+
+.root:not(.modal) button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.root:not(.modal) button::after {
+  content: '+';
+  font-size: 1.25rem;
+}
+
+.root:not(.modal) button {
+  font-size: 0;
+}
