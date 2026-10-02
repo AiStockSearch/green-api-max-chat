@@ -30,8 +30,7 @@ npm run test:e2e
 ### Cypress (E2E с вашим инстансом)
 
 1. Скопируйте `cypress.env.example.json` → `cypress.env.json` (файл в `.gitignore`).
-2. Укажите `idInstance`, `apiTokenInstance` из [console.green-api.com](https://console.green-api.com) и **apiUrl через прокси**:
-   `http://127.0.0.1:43128/green-api-proxy/7107` — так обходится CORS в браузере (хост `7107.api.greenapi.com`).
+2. Укажите `idInstance`, `apiTokenInstance`, `apiUrl` **как в кабинете** (например `https://7107.api.greenapi.com`). В `npm run dev` прокси включается автоматически.
 3. Запуск: `npm run test:e2e` (поднимает Vite на порту **43128** и гоняет Cypress).
 
 Сценарии: live `getStateInstance`, UI-вход → экран QR, демо register/partner/instance-qr.

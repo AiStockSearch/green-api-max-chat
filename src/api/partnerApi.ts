@@ -1,4 +1,5 @@
 import { DEFAULT_API_URL } from './constants'
+import { resolveDevProxyFetchUrl } from './devProxy'
 import { normalizeApiUrl } from './greenApi'
 import { GreenApiError } from './types'
 
@@ -68,9 +69,10 @@ async function partnerRequest<T>(
   url: string,
   init?: RequestInit,
 ): Promise<T> {
+  const fetchUrl = resolveDevProxyFetchUrl(url)
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await fetch(fetchUrl, {
       ...init,
       headers: {
         'Content-Type': 'application/json',

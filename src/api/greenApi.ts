@@ -1,4 +1,5 @@
-import { DEFAULT_API_URL } from './constants'
+import { normalizeApiUrl } from './apiUrl'
+import { resolveDevProxyFetchUrl } from './devProxy'
 import type {
   GreenApiCredentials,
   ReceiveNotificationResponse,
@@ -6,16 +7,7 @@ import type {
 } from './types'
 import { GreenApiError } from './types'
 
-export function normalizeApiUrl(url: string): string {
-  const trimmed = url.trim().replace(/\/+$/, '')
-  if (!trimmed) {
-    return DEFAULT_API_URL
-  }
-  if (!/^https?:\/\//i.test(trimmed)) {
-    return `https://${trimmed}`
-  }
-  return trimmed
-}
+export { normalizeApiUrl } from './apiUrl'
 
 function instancePath(credentials: GreenApiCredentials, method: string): string {
   const base = normalizeApiUrl(credentials.apiUrl)
@@ -26,9 +18,10 @@ async function requestJson<T>(
   url: string,
   init?: RequestInit,
 ): Promise<{ data: T | null; response: Response }> {
+  const fetchUrl = resolveDevProxyFetchUrl(url)
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await fetch(fetchUrl, {
       ...init,
       headers: {
         'Content-Type': 'application/json',

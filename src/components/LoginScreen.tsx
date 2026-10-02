@@ -245,6 +245,10 @@ export function LoginScreen({
                     disabled={loading}
                   />
                 </div>
+                <p className={styles.hint}>
+                  Скопируйте из кабинета (например https://7107.api.greenapi.com). В dev прокси Vite
+                  обходит CORS автоматически.
+                </p>
               </div>
 
               <label className={styles.checkboxRow}>

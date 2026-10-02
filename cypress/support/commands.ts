@@ -53,7 +53,7 @@ Cypress.Commands.add('loginInstance', (options = {}) => {
     cy.get('[data-cy="mode-instance"]').click()
     cy.get('#idInstance').clear().type(idInstance)
     cy.get('#apiTokenInstance').clear().type(apiTokenInstance, { log: false })
-    cy.get('#apiUrl').clear().type(apiUrl)
+    cy.get('#apiUrl').clear().type(String(apiUrl), { delay: 0 })
     if (remember) {
       cy.get('[data-cy="remember-instance"]').check()
     } else {
