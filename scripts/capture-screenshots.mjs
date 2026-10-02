@@ -22,6 +22,10 @@ const desktopShots = [
   { file: '07-network-error.png', url: `${base}/?demo=network` },
   { file: '08-loading.png', url: `${base}/?demo=loading` },
   { file: '09-logout-confirm.png', url: `${base}/?demo=logout` },
+  { file: '12-register.png', url: `${base}/?demo=register` },
+  { file: '13-partner-instances.png', url: `${base}/?demo=partner` },
+  { file: '14-create-instance.png', url: `${base}/?demo=create-instance` },
+  { file: '15-instance-qr-auth.png', url: `${base}/?demo=instance-qr` },
 ]
 
 const mobileShots = [

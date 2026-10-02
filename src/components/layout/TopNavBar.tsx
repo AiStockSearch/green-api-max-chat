@@ -1,7 +1,17 @@
 import { Icon } from '../Icon'
 import styles from './TopNavBar.module.css'
 
-export function TopNavBar() {
+interface AppNav {
+  onLogin?: () => void
+  onRegister?: () => void
+  active?: 'login' | 'register'
+}
+
+interface Props {
+  appNav?: AppNav
+}
+
+export function TopNavBar({ appNav }: Props) {
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -35,12 +45,32 @@ export function TopNavBar() {
           </a>
         </nav>
         <div className={styles.actions}>
-          <a className={styles.linkBtn} href="https://console.green-api.com" target="_blank" rel="noreferrer">
-            Войти
-          </a>
-          <a className={styles.regBtn} href="https://console.green-api.com" target="_blank" rel="noreferrer">
-            Регистрация
-          </a>
+          {appNav?.onLogin ? (
+            <button
+              type="button"
+              className={appNav.active === 'login' ? styles.linkBtnActive : styles.linkBtn}
+              onClick={appNav.onLogin}
+            >
+              Войти
+            </button>
+          ) : (
+            <a className={styles.linkBtn} href="https://console.green-api.com" target="_blank" rel="noreferrer">
+              Войти
+            </a>
+          )}
+          {appNav?.onRegister ? (
+            <button
+              type="button"
+              className={appNav.active === 'register' ? styles.regBtnActive : styles.regBtn}
+              onClick={appNav.onRegister}
+            >
+              Регистрация
+            </button>
+          ) : (
+            <a className={styles.regBtn} href="https://console.green-api.com" target="_blank" rel="noreferrer">
+              Регистрация
+            </a>
+          )}
         </div>
       </div>
     </header>

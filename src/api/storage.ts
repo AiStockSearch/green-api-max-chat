@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from './constants'
-import type { Chat, GreenApiCredentials, StoredMessage } from './types'
+import { clearAuth, loadAuth, saveAuth, type PersistedAuth } from './credentialsStore'
+import type { GreenApiCredentials } from './types'
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -18,33 +19,42 @@ function writeJson(key: string, value: unknown): void {
 }
 
 export function loadCredentials(): GreenApiCredentials | null {
-  return readJson<GreenApiCredentials | null>(STORAGE_KEYS.credentials, null)
+  const loaded = loadAuth()
+  if (loaded?.auth.mode === 'instance') {
+    return loaded.auth.credentials
+  }
+  return null
 }
 
-export function saveCredentials(credentials: GreenApiCredentials): void {
-  writeJson(STORAGE_KEYS.credentials, credentials)
+export function saveCredentials(
+  credentials: GreenApiCredentials,
+  remember = false,
+): void {
+  const auth: PersistedAuth = { mode: 'instance', credentials }
+  saveAuth(auth, remember)
 }
 
 export function clearCredentials(): void {
-  localStorage.removeItem(STORAGE_KEYS.credentials)
+  clearAuth()
 }
 
-export function loadChats(): Chat[] {
-  return readJson<Chat[]>(STORAGE_KEYS.chats, [])
+export function loadChats(): import('./types').Chat[] {
+  return readJson(STORAGE_KEYS.chats, [])
 }
 
-export function saveChats(chats: Chat[]): void {
+export function saveChats(chats: import('./types').Chat[]): void {
   writeJson(STORAGE_KEYS.chats, chats)
 }
 
-export function loadMessages(): StoredMessage[] {
-  return readJson<StoredMessage[]>(STORAGE_KEYS.messages, [])
+export function loadMessages(): import('./types').StoredMessage[] {
+  return readJson(STORAGE_KEYS.messages, [])
 }
 
-export function saveMessages(messages: StoredMessage[]): void {
+export function saveMessages(messages: import('./types').StoredMessage[]): void {
   writeJson(STORAGE_KEYS.messages, messages)
 }
 
 export function clearAllAppData(): void {
   Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key))
+  clearAuth()
 }

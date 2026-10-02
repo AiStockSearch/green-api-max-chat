@@ -11,6 +11,10 @@ export type DemoVariant =
   | 'mobile-list'
   | 'mobile-chat'
   | 'logout'
+  | 'register'
+  | 'partner'
+  | 'create-instance'
+  | 'instance-qr'
   | null
 
 export function getDemoVariant(): DemoVariant {
@@ -26,6 +30,10 @@ export function getDemoVariant(): DemoVariant {
     'mobile-list',
     'mobile-chat',
     'logout',
+    'register',
+    'partner',
+    'create-instance',
+    'instance-qr',
   ]
   if (allowed.includes(v as DemoVariant)) {
     return v as DemoVariant
@@ -41,6 +49,11 @@ export const DEMO_CREDENTIALS: GreenApiCredentials = {
   idInstance: '7105183921',
   apiTokenInstance: 'demo-token-not-real',
   apiUrl: 'https://api.green-api.com',
+}
+
+export const DEMO_PARTNER = {
+  partnerToken: 'gac.demo-partner-token',
+  partnerApiUrl: 'https://api.green-api.com',
 }
 
 const now = Date.now()

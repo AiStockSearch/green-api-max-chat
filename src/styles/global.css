@@ -69,3 +69,15 @@ button:disabled {
 a {
   color: var(--color-primary);
 }
+
+.reset-data-btn {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  opacity: 0.35;
+  font-size: 10px;
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+}

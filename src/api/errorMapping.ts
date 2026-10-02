@@ -91,3 +91,28 @@ export function isOutgoingFailed(status: StoredMessage['status']): boolean {
 export function canRetryMessage(msg: StoredMessage): boolean {
   return msg.direction === 'outgoing' && msg.status === 'failed'
 }
+
+export interface PartnerFieldErrors {
+  banner: string | null
+  partnerToken: string | null
+}
+
+export function mapPartnerError(err: unknown): PartnerFieldErrors {
+  if (!(err instanceof GreenApiError)) {
+    return {
+      banner: err instanceof Error ? err.message : 'Не удалось выполнить запрос',
+      partnerToken: null,
+    }
+  }
+  if (err.status === 401) {
+    return {
+      banner:
+        'Неверный partnerToken. Ключ партнёра выдаётся через support@green-api.com (см. документацию Partner API).',
+      partnerToken: 'Unauthorized',
+    }
+  }
+  return {
+    banner: [err.message, err.details].filter(Boolean).join(': '),
+    partnerToken: null,
+  }
+}

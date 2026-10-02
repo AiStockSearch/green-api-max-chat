@@ -132,3 +132,32 @@ export async function deleteNotification(
   const { data } = await requestJson<{ result?: boolean }>(url, { method: 'DELETE' })
   return Boolean(data?.result)
 }
+
+export function instanceQrUrl(credentials: GreenApiCredentials): string {
+  return instancePath(credentials, 'qr')
+}
+
+/** GET qr — ответ type/message (base64 PNG в message). */
+export async function fetchInstanceQr(credentials: GreenApiCredentials): Promise<unknown> {
+  const url = instanceQrUrl(credentials)
+  const { data } = await requestJson<unknown>(url, { method: 'GET' })
+  return data
+}
+
+export interface SendAuthorizationPasswordResult {
+  status?: string | boolean
+  reason?: string
+}
+
+/** POST sendAuthorizationPassword — 2FA после QR (MAX). */
+export async function sendAuthorizationPassword(
+  credentials: GreenApiCredentials,
+  password: string,
+): Promise<SendAuthorizationPasswordResult> {
+  const url = instancePath(credentials, 'sendAuthorizationPassword')
+  const { data } = await requestJson<SendAuthorizationPasswordResult>(url, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  })
+  return data ?? {}
+}

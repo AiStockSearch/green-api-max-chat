@@ -26,18 +26,48 @@ npm test
 npm run build
 ```
 
-## Учётные данные GREEN-API
+## Учётные данные и «аккаунт» в приложении
 
-1. Зарегистрируйтесь в [личном кабинете GREEN-API](https://green-api.com).
-2. Создайте и **авторизуйте** инстанс MAX (QR-код в кабинете или метод QR).
-3. В карточке инстанса скопируйте:
-   - **idInstance**
-   - **apiTokenInstance**
-   - **apiUrl** — хост API (часто `https://api.green-api.com` или персональный, например `https://3100.api.green-api.com`)
+У GREEN-API **нет публичного API** регистрации/логина конечного пользователя в личный кабинет. Регистрация и вход на сайте — [console.green-api.com](https://console.green-api.com).
 
-В приложении на экране входа укажите эти значения. Они сохраняются в **localStorage** браузера (кнопка «Выйти» удаляет только учётные данные; чаты и сообщения остаются в localStorage).
+В приложении два режима (переключатель на экране **«Вход»**):
+
+| Режим | Что нужно | API |
+|--------|-----------|-----|
+| **Инстанс** | `idInstance`, `apiTokenInstance`, `apiUrl` | GetStateInstance → чат или экран QR |
+| **Партнёр** | `partnerToken`, `partnerApiUrl` (из кабинета / support) | [Partner API](https://green-api.com/docs/partners/): getInstances, createInstance, deleteInstanceAccount → авторизация инстанса → чат |
+
+### Инстанс MAX
+
+1. Создайте инстанс MAX в кабинете.
+2. Скопируйте **idInstance**, **apiTokenInstance**, **apiUrl**.
+3. Войдите в приложении в режиме «Инстанс». При `notAuthorized` откроется шаг **QR** (метод `GET …/qr/…`, страница [qr.green-api.com](https://qr.green-api.com)) и опрос **getStateInstance**. При `pendingPassword` — **sendAuthorizationPassword** (2FA MAX).
+
+### Partner API
+
+Ключ `partnerToken` (вид `gac.…`) выдаётся через [support@green-api.com](mailto:support@green-api.com). Формат запросов: `{{partnerApiUrl}}/partner/{method}/{{partnerToken}}`.
+
+> **Безопасность:** хранение `partnerToken` в browser-only SPA — только для **демо/тестов**. В продакшене Partner API и секреты инстанса должны идти через **backend-прокси**, не из фронтенда.
+
+### Сохранение ключей
+
+- По умолчанию ключи живут в **sessionStorage** (до закрытия вкладки).
+- Чекбокс **«Запомнить»** сохраняет в **localStorage** (явное согласие).
+- Формы используют `autocomplete="username"` / `current-password` для менеджера паролей; при поддержке браузера вызывается Credential Management API (`PasswordCredential`).
 
 > **Не коммитьте** реальные токены в репозиторий.
+
+### Что есть в документации MAX (проверено)
+
+| Метод | Статус для MAX |
+|--------|----------------|
+| getStateInstance | ✅ |
+| QR (`/qr/`, qr.green-api.com) | ✅ |
+| sendAuthorizationPassword (2FA после QR) | ✅ |
+| getAuthorizationCode / StartAuthorization / SendAuthorizationCode | ❌ не поддерживаются MAX (WhatsApp OTP; см. [новость интеграции MAX](https://green-api.com/articles/en/news/04-02-2026-release-max-integration/)) |
+| Partner: getInstances, createInstance, deleteInstanceAccount | ✅ (общие методы партнёра; тип мессенджера в ответе `typeInstance`) |
+
+Параметра «создать только MAX» в теле `createInstance` в документации **нет** — тип инстанса определяется на стороне GREEN-API/кабинета.
 
 ## Настройка приёма входящих сообщений
 
@@ -105,8 +135,19 @@ _Добавьте URL после публикации, например: `https:
 | `mobile-chat` | Активный чат на мобильном с кнопкой «назад» |
 | `logout` | Модалка подтверждения выхода |
 | `empty`, `modal`, `active` | Как раньше: пустой layout, модалка нового чата, диалог |
+| `register` | Экран «Регистрация» (ссылка на console.green-api.com) |
+| `partner` | Список инстансов партнёра (демо-данные) |
+| `create-instance` | Partner: форма createInstance раскрыта |
+| `instance-qr` | Экран авторизации QR / getStateInstance |
 
 Переснять скриншоты: `npm run build && npm run screenshots` (или `node scripts/capture-screenshots.mjs`).
+
+| Экран аккаунта | Файл |
+|----------------|------|
+| Регистрация | docs/screenshots/12-register.png |
+| Partner: инстансы | docs/screenshots/13-partner-instances.png |
+| Partner: createInstance | docs/screenshots/14-create-instance.png |
+| Авторизация QR | docs/screenshots/15-instance-qr-auth.png |
 
 ## Структура проекта
 

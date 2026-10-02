@@ -1,0 +1,126 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--color-surface-lowest);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 70%, transparent);
+  box-shadow: var(--shadow-lg);
+  padding: 28px 32px;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.sub {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-on-surface-variant);
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-lowest);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.status {
+  font-size: var(--font-size-sm);
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-lg);
+}
+
+.qrBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.qrImg {
+  width: 220px;
+  height: 220px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-outline-variant);
+  background: #fff;
+}
+
+.qrPlaceholder {
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container);
+  font-size: var(--font-size-sm);
+  color: var(--color-on-surface-variant);
+}
+
+.qrLink {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary-dark);
+}
+
+.hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-on-surface-variant);
+  text-align: center;
+  line-height: 1.45;
+}
+
+.passwordForm {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.passwordForm input {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.primaryBtn {
+  border: none;
+  background: var(--color-primary-dark);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}
