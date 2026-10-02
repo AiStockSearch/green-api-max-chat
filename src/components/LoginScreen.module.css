@@ -266,10 +266,37 @@
   gap: 4px;
 }
 
-.error {
-  padding: 10px 12px;
+.alertBanner {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  padding: var(--space-md);
   border-radius: var(--radius-sm);
   background: var(--color-error-bg);
+  border: 1px solid #f5c2c2;
   color: var(--color-error-text);
   font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.inputError {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 15%, transparent) !important;
+}
+
+.inputErrorIcon {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-error);
+}
+
+.fieldError {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
 }

@@ -85,8 +85,28 @@ _Добавьте URL после публикации, например: `https:
 | Пустое состояние | [docs/screenshots/02-empty-state.png](docs/screenshots/02-empty-state.png) |
 | Модалка «Новый чат» | [docs/screenshots/03-new-chat-modal.png](docs/screenshots/03-new-chat-modal.png) |
 | Активный чат | [docs/screenshots/04-active-chat.png](docs/screenshots/04-active-chat.png) |
+| Ошибка входа | [docs/screenshots/05-login-error.png](docs/screenshots/05-login-error.png) |
+| Инстанс не авторизован | [docs/screenshots/06-instance-unauthorized.png](docs/screenshots/06-instance-unauthorized.png) |
+| Сеть / CORS | [docs/screenshots/07-network-error.png](docs/screenshots/07-network-error.png) |
+| Загрузка / скелетоны | [docs/screenshots/08-loading.png](docs/screenshots/08-loading.png) |
+| Выход из инстанса | [docs/screenshots/09-logout-confirm.png](docs/screenshots/09-logout-confirm.png) |
+| Мобильный список чатов | [docs/screenshots/10-mobile-chat-list.png](docs/screenshots/10-mobile-chat-list.png) |
+| Мобильный активный чат | [docs/screenshots/11-mobile-active-chat.png](docs/screenshots/11-mobile-active-chat.png) |
 
-Локальный просмотр макетов: `?demo=empty`, `?demo=modal`, `?demo=active` (после сборки или в dev). Переснять скриншоты: `npm run build && node scripts/capture-screenshots.mjs`.
+Демо-режим (без реальных токенов), query-параметр `demo`:
+
+| `demo=` | Что показывает |
+|---------|----------------|
+| `error` | Экран входа с баннером и inline-ошибками полей |
+| `unauthorized` | Карточка «Инстанс не авторизован в MAX», кнопка «Проверить снова» (GetStateInstance) |
+| `network` | Баннер CORS/сети, неотправленное сообщение с «Повторить» |
+| `loading` | Скелетоны списка и переписки, статус «отправляется» |
+| `mobile-list` | Список чатов на ширине ≤768px |
+| `mobile-chat` | Активный чат на мобильном с кнопкой «назад» |
+| `logout` | Модалка подтверждения выхода |
+| `empty`, `modal`, `active` | Как раньше: пустой layout, модалка нового чата, диалог |
+
+Переснять скриншоты: `npm run build && npm run screenshots` (или `node scripts/capture-screenshots.mjs`).
 
 ## Структура проекта
 

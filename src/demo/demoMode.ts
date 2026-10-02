@@ -1,11 +1,34 @@
 import type { Chat, GreenApiCredentials, StoredMessage } from '../api/types'
 
-export type DemoVariant = 'empty' | 'modal' | 'active' | null
+export type DemoVariant =
+  | 'empty'
+  | 'modal'
+  | 'active'
+  | 'error'
+  | 'loading'
+  | 'unauthorized'
+  | 'network'
+  | 'mobile-list'
+  | 'mobile-chat'
+  | 'logout'
+  | null
 
 export function getDemoVariant(): DemoVariant {
   const v = new URLSearchParams(window.location.search).get('demo')
-  if (v === 'empty' || v === 'modal' || v === 'active') {
-    return v
+  const allowed: DemoVariant[] = [
+    'empty',
+    'modal',
+    'active',
+    'error',
+    'loading',
+    'unauthorized',
+    'network',
+    'mobile-list',
+    'mobile-chat',
+    'logout',
+  ]
+  if (allowed.includes(v as DemoVariant)) {
+    return v as DemoVariant
   }
   return null
 }
@@ -76,3 +99,32 @@ export const DEMO_MESSAGES: StoredMessage[] = [
     direction: 'incoming',
   },
 ]
+
+export const DEMO_FAILED_MESSAGE: StoredMessage = {
+  id: 'm-fail',
+  chatId: '10000001',
+  text: 'спецификация v2.pdf',
+  timestamp: now - 60 * 1000,
+  direction: 'outgoing',
+  status: 'failed',
+  error: 'CORS preflight request blocked (TypeError: Failed to fetch)',
+}
+
+export const DEMO_SENDING_MESSAGE: StoredMessage = {
+  id: 'm-pending',
+  chatId: '10000001',
+  text: 'Сообщение',
+  timestamp: now - 30 * 1000,
+  direction: 'outgoing',
+  status: 'sending',
+}
+
+export function demoMessagesForVariant(variant: DemoVariant): StoredMessage[] {
+  if (variant === 'network') {
+    return [...DEMO_MESSAGES, DEMO_FAILED_MESSAGE]
+  }
+  if (variant === 'loading') {
+    return [...DEMO_MESSAGES.slice(0, 2), DEMO_SENDING_MESSAGE]
+  }
+  return DEMO_MESSAGES
+}

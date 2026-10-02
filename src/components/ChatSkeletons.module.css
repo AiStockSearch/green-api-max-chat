@@ -1,0 +1,74 @@
+@keyframes shimmer {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
+.skeleton {
+  background: var(--color-surface-container);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.listItem {
+  display: flex;
+  gap: var(--space-md);
+  padding: 12px;
+  align-items: center;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+.lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lineLg {
+  height: 12px;
+  width: 55%;
+  border-radius: var(--radius-full);
+}
+
+.lineSm {
+  height: 10px;
+  width: 80%;
+  border-radius: var(--radius-full);
+}
+
+.msgRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.msgRowOut {
+  justify-content: flex-end;
+}
+
+.bubble {
+  width: min(280px, 70%);
+  height: 64px;
+  border-radius: var(--radius-md);
+}
+
+.syncBanner {
+  padding: var(--space-md);
+  background: var(--color-primary-fixed);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}

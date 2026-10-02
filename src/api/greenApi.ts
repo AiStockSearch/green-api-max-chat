@@ -35,10 +35,12 @@ async function requestJson<T>(
         ...init?.headers,
       },
     })
-  } catch {
-    throw new GreenApiError(
-      'Сетевая ошибка. Проверьте интернет и адрес API (apiUrl).',
-    )
+  } catch (cause) {
+    const msg =
+      cause instanceof Error && cause.message.toLowerCase().includes('fetch')
+        ? 'Сетевая ошибка / CORS: TypeError: Failed to fetch. Проверьте apiUrl и доступ из браузера.'
+        : 'Сетевая ошибка. Проверьте интернет и адрес API (apiUrl).'
+    throw new GreenApiError(msg)
   }
 
   if (response.status === 401) {
@@ -77,11 +79,16 @@ async function requestJson<T>(
   return { data, response }
 }
 
-/** Проверка учётных данных (состояние инстанса). */
-export async function getState(credentials: GreenApiCredentials): Promise<unknown> {
-  const url = instancePath(credentials, 'getState')
+/** Состояние инстанса (GetStateInstance). */
+export async function getStateInstance(credentials: GreenApiCredentials): Promise<unknown> {
+  const url = instancePath(credentials, 'getStateInstance')
   const { data } = await requestJson<unknown>(url, { method: 'GET' })
   return data
+}
+
+/** @deprecated используйте getStateInstance */
+export async function getState(credentials: GreenApiCredentials): Promise<unknown> {
+  return getStateInstance(credentials)
 }
 
 export async function sendMessage(

@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { canRetryMessage, classifyPollError } from '../api/errorMapping'
 import { chatTitleFromInput, resolveChatId } from '../api/chatId'
-import { sendMessage } from '../api/greenApi'
+import { getStateInstance, sendMessage } from '../api/greenApi'
+import {
+  isInstanceAuthorized,
+  isInstanceUnauthorized,
+  parseStateInstance,
+} from '../api/instanceState'
 import { chatIdsMatch } from '../api/notifications'
 import type {
   Chat,
@@ -10,8 +16,10 @@ import type {
   StoredMessage,
 } from '../api/types'
 import { GreenApiError } from '../api/types'
-import { isDemoMode } from '../demo/demoMode'
+import { getDemoVariant, isDemoMode } from '../demo/demoMode'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useNotificationPolling } from '../hooks/useNotificationPolling'
+import { usePollRetryCountdown } from '../hooks/usePollRetryCountdown'
 import {
   avatarLabel,
   chatPreviewText,
@@ -22,7 +30,11 @@ import {
   getUnreadCount,
   groupMessagesByDay,
 } from '../utils/chatUi'
+import { ChatListSkeleton, MessagesSkeleton, SyncBanner } from './ChatSkeletons'
 import { Icon } from './Icon'
+import { InstanceUnauthorizedPanel } from './InstanceUnauthorizedPanel'
+import { LogoutConfirmModal } from './LogoutConfirmModal'
+import { NetworkErrorBanner } from './NetworkErrorBanner'
 import styles from './ChatLayout.module.css'
 import { NewChatPanel } from './NewChatPanel'
 
@@ -55,6 +67,7 @@ export function ChatLayout({
   initialModalOpen = false,
   defaultSelectedChatId,
 }: Props) {
+  const demoVariant = getDemoVariant()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(
     () => defaultSelectedChatId ?? chats[0]?.id ?? null,
   )
@@ -66,9 +79,61 @@ export function ChatLayout({
   const [sendError, setSendError] = useState<string | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
   const [lastSeenByChat, setLastSeenByChat] = useState<Record<string, number>>({})
+  const [instanceState, setInstanceState] = useState<string | null>(() => {
+    if (demoVariant === 'unauthorized') {
+      return 'notAuthorized'
+    }
+    if (isDemoMode() && demoVariant !== 'loading') {
+      return 'authorized'
+    }
+    return null
+  })
+  const [instanceBlocked, setInstanceBlocked] = useState(
+    () => demoVariant === 'unauthorized',
+  )
+  const [syncLoading, setSyncLoading] = useState(() => {
+    if (demoVariant === 'loading') {
+      return true
+    }
+    if (demoVariant === 'unauthorized' || isDemoMode()) {
+      return false
+    }
+    return true
+  })
+  const [checkingState, setCheckingState] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(() => getDemoVariant() === 'logout')
+  const [mobileShowChat, setMobileShowChat] = useState(
+    () => getDemoVariant() === 'mobile-chat' || Boolean(defaultSelectedChatId),
+  )
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const pollRetrySec = usePollRetryCountdown(Boolean(pollError))
 
   const selectedChat = chats.find((c) => c.id === selectedChatId) ?? null
+
+  const showUnauthorized =
+    demoVariant === 'unauthorized' || (instanceBlocked && demoVariant !== 'loading')
+
+  const showSyncLoading = demoVariant === 'loading' || (syncLoading && !showUnauthorized)
+
+  const effectivePollError =
+    demoVariant === 'network'
+      ? 'CORS preflight request blocked (TypeError: Failed to fetch)'
+      : pollError
+
+  const pollKind = effectivePollError ? classifyPollError(effectivePollError) : null
+
+  const showMobileChatPane =
+    isMobile &&
+    (demoVariant === 'mobile-chat' || (mobileShowChat && Boolean(selectedChat)))
+
+  const shellClass = [
+    styles.shell,
+    isMobile && !showMobileChatPane ? styles.mobileListView : '',
+    isMobile && showMobileChatPane ? styles.mobileChatView : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   const filteredChats = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -95,9 +160,125 @@ export function ChatLayout({
     scrollToBottom()
   }, [chatMessages.length, selectedChatId, scrollToBottom])
 
+  const refreshInstanceState = useCallback(async () => {
+    if (demoVariant === 'unauthorized') {
+      setInstanceBlocked(true)
+      setInstanceState('notAuthorized')
+      setSyncLoading(false)
+      return
+    }
+    if (isDemoMode()) {
+      setInstanceBlocked(false)
+      setInstanceState('authorized')
+      setSyncLoading(false)
+      return
+    }
+    setCheckingState(true)
+    try {
+      const raw = await getStateInstance(credentials)
+      const state = parseStateInstance(raw)
+      setInstanceState(state)
+      setInstanceBlocked(isInstanceUnauthorized(state) && !isInstanceAuthorized(state))
+    } catch {
+      setInstanceBlocked(false)
+    } finally {
+      setCheckingState(false)
+      setSyncLoading(false)
+    }
+  }, [credentials, demoVariant])
+
+  useEffect(() => {
+    if (demoVariant === 'loading') {
+      const t = window.setTimeout(() => setSyncLoading(false), 2500)
+      return () => window.clearTimeout(t)
+    }
+    if (isDemoMode()) {
+      return undefined
+    }
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setCheckingState(true)
+      }
+    })
+    getStateInstance(credentials)
+      .then((raw) => {
+        if (cancelled) {
+          return
+        }
+        const state = parseStateInstance(raw)
+        setInstanceState(state)
+        setInstanceBlocked(isInstanceUnauthorized(state) && !isInstanceAuthorized(state))
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInstanceBlocked(false)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCheckingState(false)
+          setSyncLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [credentials, demoVariant])
+
   const selectChat = (chatId: string) => {
     setSelectedChatId(chatId)
     setLastSeenByChat((prev) => ({ ...prev, [chatId]: Date.now() }))
+    if (isMobile) {
+      setMobileShowChat(true)
+    }
+  }
+
+  const sendText = async (text: string, localId: string) => {
+    if (!selectedChat) {
+      return
+    }
+    onMessagesChange((prev) =>
+      prev.map((m) =>
+        m.id === localId
+          ? { ...m, status: 'sending' as const, error: undefined, text }
+          : m,
+      ),
+    )
+    setSending(true)
+    setSendError(null)
+    try {
+      const res = await sendMessage(credentials, selectedChat.chatId, text)
+      onMessagesChange((prev) =>
+        prev.map((m) =>
+          m.id === localId
+            ? { ...m, status: 'sent' as const, idMessage: res.idMessage }
+            : m,
+        ),
+      )
+    } catch (err) {
+      const errText =
+        err instanceof GreenApiError
+          ? [err.message, err.details].filter(Boolean).join(': ')
+          : err instanceof Error
+            ? err.message
+            : 'Ошибка отправки'
+      setSendError(errText)
+      onMessagesChange((prev) =>
+        prev.map((m) =>
+          m.id === localId ? { ...m, status: 'failed' as const, error: errText } : m,
+        ),
+      )
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const retryMessage = (msg: StoredMessage) => {
+    if (!canRetryMessage(msg) || isDemoMode()) {
+      return
+    }
+    void sendText(msg.text, msg.id)
   }
 
   const handleIncoming = useCallback(
@@ -139,7 +320,7 @@ export function ChatLayout({
 
   useNotificationPolling({
     credentials,
-    enabled: !isDemoMode(),
+    enabled: !isDemoMode() && !instanceBlocked && !showSyncLoading,
     onMessage: handleIncoming,
     onError: (err) => onPollError(err),
   })
@@ -196,7 +377,6 @@ export function ChatLayout({
       ])
       return
     }
-    setSendError(null)
     const text = draft.trim()
     setDraft('')
     const localId = newId()
@@ -209,32 +389,7 @@ export function ChatLayout({
       status: 'sending',
     }
     onMessagesChange((prev) => [...prev, optimistic])
-    setSending(true)
-    try {
-      const res = await sendMessage(credentials, selectedChat.chatId, text)
-      onMessagesChange((prev) =>
-        prev.map((m) =>
-          m.id === localId
-            ? { ...m, status: 'sent' as const, idMessage: res.idMessage }
-            : m,
-        ),
-      )
-    } catch (err) {
-      const errText =
-        err instanceof GreenApiError
-          ? [err.message, err.details].filter(Boolean).join(': ')
-          : err instanceof Error
-            ? err.message
-            : 'Ошибка отправки'
-      setSendError(errText)
-      onMessagesChange((prev) =>
-        prev.map((m) =>
-          m.id === localId ? { ...m, status: 'failed' as const, error: errText } : m,
-        ),
-      )
-    } finally {
-      setSending(false)
-    }
+    await sendText(text, localId)
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -258,8 +413,49 @@ export function ChatLayout({
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  if (showUnauthorized) {
+    return (
+      <div className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarHead}>
+            <div className={styles.brandBlock}>
+              <div className={styles.logoGradient}>
+                <Icon name="chat" filled />
+              </div>
+              <div>
+                <div className={styles.brandTitle}>GREEN-API MAX</div>
+                <div className={styles.onlineRow}>
+                  <span className={styles.onlineDot} style={{ background: '#fa8c16' }} />
+                  Не авторизован
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <main className={styles.main}>
+          <InstanceUnauthorizedPanel
+            credentials={credentials}
+            stateLabel={instanceState}
+            checking={checkingState}
+            onRecheck={() => void refreshInstanceState()}
+            onChangeInstance={() => setLogoutOpen(true)}
+          />
+        </main>
+        <LogoutConfirmModal
+          open={logoutOpen}
+          idInstance={credentials.idInstance}
+          onCancel={() => setLogoutOpen(false)}
+          onConfirm={() => {
+            setLogoutOpen(false)
+            onLogout()
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
-    <div className={styles.shell}>
+    <div className={shellClass}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHead}>
           <div className={styles.brandBlock}>
@@ -282,7 +478,7 @@ export function ChatLayout({
               type="button"
               className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
               title="Выйти"
-              onClick={onLogout}
+              onClick={() => setLogoutOpen(true)}
             >
               <Icon name="logout" size="sm" />
             </button>
@@ -323,7 +519,11 @@ export function ChatLayout({
           <span className={styles.dialogCount}>{chats.length} диалогов</span>
         </div>
 
-        {filteredChats.length === 0 ? (
+        {showSyncLoading ? (
+          <ul className={styles.chatList}>
+            <ChatListSkeleton count={6} />
+          </ul>
+        ) : filteredChats.length === 0 ? (
           <div className={styles.sidebarEmpty}>
             <div className={styles.sidebarEmptyIcon}>
               <Icon name="forum" size="lg" />
@@ -425,9 +625,24 @@ export function ChatLayout({
           </div>
         ) : (
           <div className={styles.activePane} data-ui="active-chat">
-            {pollError && <div className={styles.pollBanner}>Опрос уведомлений: {pollError}</div>}
+            {pollKind && (
+              <NetworkErrorBanner
+                kind={pollKind}
+                retryInSec={pollRetrySec}
+                onRetryNow={() => onPollError(null)}
+              />
+            )}
+            {showSyncLoading && <SyncBanner />}
             <header className={styles.chatHeader}>
               <div className={styles.chatHeaderUser}>
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${styles.mobileBack}`}
+                  aria-label="Назад к списку"
+                  onClick={() => setMobileShowChat(false)}
+                >
+                  <Icon name="arrow_back" size="sm" />
+                </button>
                 <div className={styles.headerAvatar}>{avatarLabel(selectedChat.title)}</div>
                 <div>
                   <h2 className={styles.chatHeaderName}>{selectedChat.title}</h2>
@@ -448,10 +663,13 @@ export function ChatLayout({
             </header>
 
             <div className={styles.messages}>
-              {chatMessages.length === 0 && (
+              {showSyncLoading ? (
+                <MessagesSkeleton />
+              ) : chatMessages.length === 0 ? (
                 <p className={styles.emptyText}>Нет сообщений. Напишите первым.</p>
-              )}
-              {messageGroups.map((group) => (
+              ) : null}
+              {!showSyncLoading &&
+                messageGroups.map((group) => (
                 <div key={group.label}>
                   <div className={styles.dateDivider}>
                     <span>{group.label}</span>
@@ -467,7 +685,7 @@ export function ChatLayout({
                           <div className={styles.miniAvatar}>{avatarLabel(selectedChat.title)}</div>
                         )}
                         <div
-                          className={`${styles.bubble} ${outgoing ? styles.bubbleOut : styles.bubbleIn}`}
+                          className={`${styles.bubble} ${outgoing ? styles.bubbleOut : styles.bubbleIn} ${m.status === 'failed' ? styles.bubbleFailed : ''}`}
                         >
                           <p>{m.text}</p>
                           <div
@@ -475,13 +693,30 @@ export function ChatLayout({
                           >
                             <span>
                               {formatMessageTime(m.timestamp)}
-                              {m.status === 'sending' && ' · …'}
-                              {m.status === 'failed' && ' · ошибка'}
+                              {m.status === 'sending' && ' · отправляется'}
                             </span>
-                            {outgoing && m.status !== 'failed' && (
+                            {outgoing && m.status === 'sending' && (
+                              <Icon name="schedule" size="sm" />
+                            )}
+                            {outgoing && m.status === 'sent' && (
                               <Icon name="done_all" filled size="sm" className={styles.ticks} />
                             )}
                           </div>
+                          {m.status === 'failed' && (
+                            <div className={styles.failRow}>
+                              <span>Не отправлено</span>
+                              <button
+                                type="button"
+                                className={styles.retryLink}
+                                onClick={() => retryMessage(m)}
+                              >
+                                Повторить
+                              </button>
+                            </div>
+                          )}
+                          {m.error && m.status === 'failed' && (
+                            <p className={styles.failDetail}>{m.error}</p>
+                          )}
                         </div>
                       </div>
                     )
@@ -491,12 +726,11 @@ export function ChatLayout({
               <div ref={messagesEndRef} />
             </div>
 
-            {sendError && (
-              <div className={styles.sendErrorWrap}>
-                <p className={styles.emptyText} style={{ color: 'var(--color-error)' }}>
-                  {sendError}
-                </p>
-              </div>
+            {(sendError || pollKind === 'network' || pollKind === 'cors') && (
+              <p className={styles.composerError}>
+                {sendError ??
+                  'Ошибка сети: NetworkError / CORS preflight failed'}
+              </p>
             )}
 
             <div className={styles.composer} data-ui="active-chat-composer">
@@ -512,9 +746,13 @@ export function ChatLayout({
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="Сообщение..."
+                  placeholder={
+                    pollKind === 'network' || pollKind === 'cors'
+                      ? 'Сообщение… (будет отправлено при восстановлении связи)'
+                      : 'Сообщение...'
+                  }
                   rows={1}
-                  disabled={sending}
+                  disabled={sending || showSyncLoading}
                   aria-label="Текст сообщения"
                 />
               </div>
@@ -549,6 +787,15 @@ export function ChatLayout({
         onSubmit={handleCreateChat}
         onClose={closeNewChat}
         error={createError}
+      />
+      <LogoutConfirmModal
+        open={logoutOpen}
+        idInstance={credentials.idInstance}
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          setLogoutOpen(false)
+          onLogout()
+        }}
       />
     </div>
   )

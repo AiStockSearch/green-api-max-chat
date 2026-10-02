@@ -12,11 +12,21 @@ const outDir = path.join(root, 'docs', 'screenshots')
 const port = 43124
 const base = `http://127.0.0.1:${port}`
 
-const shots = [
+const desktopShots = [
   { file: '01-login.png', url: `${base}/` },
   { file: '02-empty-state.png', url: `${base}/?demo=empty` },
   { file: '03-new-chat-modal.png', url: `${base}/?demo=modal` },
   { file: '04-active-chat.png', url: `${base}/?demo=active` },
+  { file: '05-login-error.png', url: `${base}/?demo=error` },
+  { file: '06-instance-unauthorized.png', url: `${base}/?demo=unauthorized` },
+  { file: '07-network-error.png', url: `${base}/?demo=network` },
+  { file: '08-loading.png', url: `${base}/?demo=loading` },
+  { file: '09-logout-confirm.png', url: `${base}/?demo=logout` },
+]
+
+const mobileShots = [
+  { file: '10-mobile-chat-list.png', url: `${base}/?demo=mobile-list` },
+  { file: '11-mobile-active-chat.png', url: `${base}/?demo=mobile-chat` },
 ]
 
 function waitForServer(url, timeoutMs = 45000) {
@@ -40,6 +50,14 @@ function waitForServer(url, timeoutMs = 45000) {
   })
 }
 
+async function capture(page, shots) {
+  for (const shot of shots) {
+    await page.goto(shot.url, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(shot.waitMs ?? 800)
+    await page.screenshot({ path: path.join(outDir, shot.file) })
+  }
+}
+
 async function main() {
   await mkdir(outDir, { recursive: true })
 
@@ -52,13 +70,17 @@ async function main() {
   try {
     await waitForServer(base)
     const browser = await chromium.launch()
-    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 
-    for (const shot of shots) {
-      await page.goto(shot.url, { waitUntil: 'networkidle' })
-      await page.waitForTimeout(800)
-      await page.screenshot({ path: path.join(outDir, shot.file) })
-    }
+    const desktop = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await capture(desktop, desktopShots)
+    await desktop.close()
+
+    const mobile = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+    })
+    await capture(mobile, mobileShots)
+    await mobile.close()
 
     await browser.close()
     console.log('Screenshots saved to docs/screenshots/')

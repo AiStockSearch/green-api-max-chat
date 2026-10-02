@@ -15,33 +15,63 @@ import { LoginScreen } from './components/LoginScreen'
 import {
   DEMO_CHATS,
   DEMO_CREDENTIALS,
-  DEMO_MESSAGES,
+  demoMessagesForVariant,
   getDemoVariant,
   isDemoMode,
 } from './demo/demoMode'
+
+function chatsForDemo(variant: ReturnType<typeof getDemoVariant>): Chat[] {
+  if (!variant || variant === 'error') {
+    return []
+  }
+  if (variant === 'empty' || variant === 'modal') {
+    return []
+  }
+  return DEMO_CHATS
+}
+
+function defaultChatIdForDemo(variant: ReturnType<typeof getDemoVariant>): string | undefined {
+  if (!variant || variant === 'error' || variant === 'empty' || variant === 'modal') {
+    return undefined
+  }
+  if (variant === 'mobile-list') {
+    return undefined
+  }
+  return DEMO_CHATS[0]?.id
+}
 
 function App() {
   const demoVariant = useMemo(() => getDemoVariant(), [])
 
   const [credentials, setCredentials] = useState<GreenApiCredentials | null>(() => {
+    if (demoVariant === 'error') {
+      return null
+    }
     if (demoVariant) {
       return DEMO_CREDENTIALS
     }
     return loadCredentials()
   })
   const [chats, setChats] = useState<Chat[]>(() => {
-    if (demoVariant === 'active') {
-      return DEMO_CHATS
+    if (demoVariant) {
+      return chatsForDemo(demoVariant)
     }
     return loadChats()
   })
   const [messages, setMessages] = useState<StoredMessage[]>(() => {
-    if (demoVariant === 'active') {
-      return DEMO_MESSAGES
+    if (demoVariant && demoVariant !== 'error') {
+      if (demoVariant === 'empty' || demoVariant === 'modal') {
+        return []
+      }
+      return demoMessagesForVariant(demoVariant)
     }
     return loadMessages()
   })
-  const [pollError, setPollError] = useState<string | null>(null)
+  const [pollError, setPollError] = useState<string | null>(() =>
+    demoVariant === 'network'
+      ? 'CORS preflight request blocked (TypeError: Failed to fetch)'
+      : null,
+  )
 
   const handleLogin = useCallback((creds: GreenApiCredentials) => {
     saveCredentials(creds)
@@ -95,7 +125,7 @@ function App() {
   if (!credentials) {
     return (
       <>
-        <LoginScreen onSuccess={handleLogin} />
+        <LoginScreen onSuccess={handleLogin} demoShowErrors={demoVariant === 'error'} />
         <button
           type="button"
           style={{
@@ -128,7 +158,7 @@ function App() {
       pollError={pollError}
       onPollError={setPollError}
       initialModalOpen={demoVariant === 'modal'}
-      defaultSelectedChatId={demoVariant === 'active' ? DEMO_CHATS[0]?.id : undefined}
+      defaultSelectedChatId={defaultChatIdForDemo(demoVariant)}
     />
   )
 }

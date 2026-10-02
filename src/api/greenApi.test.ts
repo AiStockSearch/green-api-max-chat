@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   deleteNotification,
+  getStateInstance,
   normalizeApiUrl,
   receiveNotification,
   sendMessage,
@@ -86,6 +87,21 @@ describe('receiveNotification', () => {
     )
     const res = await receiveNotification(creds, 5)
     expect(res?.receiptId).toBe(42)
+  })
+})
+
+describe('getStateInstance', () => {
+  it('вызывает GET getStateInstance', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ stateInstance: 'authorized' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const raw = await getStateInstance(creds)
+    expect(raw).toEqual({ stateInstance: 'authorized' })
+    expect(fetchMock.mock.calls[0][0]).toContain('/getStateInstance/test-token')
   })
 })
 

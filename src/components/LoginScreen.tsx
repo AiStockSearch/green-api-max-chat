@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { mapLoginError, type LoginFieldErrors } from '../api/errorMapping'
 import { DEFAULT_API_URL } from '../api/constants'
-import { getState, normalizeApiUrl } from '../api/greenApi'
+import { getStateInstance, normalizeApiUrl } from '../api/greenApi'
+import { isInstanceAuthorized, parseStateInstance } from '../api/instanceState'
 import type { GreenApiCredentials } from '../api/types'
 import { GreenApiError } from '../api/types'
 import { HelpCredentialsModal } from './HelpCredentialsModal'
@@ -12,50 +14,68 @@ import styles from './LoginScreen.module.css'
 
 interface Props {
   onSuccess: (credentials: GreenApiCredentials) => void
+  /** Демо-экран login-error */
+  demoShowErrors?: boolean
 }
 
-export function LoginScreen({ onSuccess }: Props) {
-  const [idInstance, setIdInstance] = useState('')
-  const [apiTokenInstance, setApiTokenInstance] = useState('')
+const emptyFieldErrors: LoginFieldErrors = {
+  banner: null,
+  idInstance: null,
+  apiTokenInstance: null,
+}
+
+export function LoginScreen({ onSuccess, demoShowErrors }: Props) {
+  const [idInstance, setIdInstance] = useState(() =>
+    demoShowErrors ? '1101823456' : '',
+  )
+  const [apiTokenInstance, setApiTokenInstance] = useState(() =>
+    demoShowErrors ? 'demo-wrong-token' : '',
+  )
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL)
   const [remember, setRemember] = useState(true)
   const [showToken, setShowToken] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>(() =>
+    demoShowErrors
+      ? mapLoginError(new GreenApiError('Unauthorized', 401))
+      : emptyFieldErrors,
+  )
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    setError(null)
+    setFieldErrors(emptyFieldErrors)
     const credentials: GreenApiCredentials = {
       idInstance: idInstance.trim(),
       apiTokenInstance: apiTokenInstance.trim(),
       apiUrl: normalizeApiUrl(apiUrl),
     }
     if (!credentials.idInstance || !credentials.apiTokenInstance) {
-      setError('Укажите idInstance и apiTokenInstance')
+      setFieldErrors({
+        banner: 'Укажите idInstance и apiTokenInstance',
+        idInstance: !credentials.idInstance ? 'Обязательное поле' : null,
+        apiTokenInstance: !credentials.apiTokenInstance ? 'Обязательное поле' : null,
+      })
       return
     }
     setLoading(true)
     try {
-      await getState(credentials)
-      if (remember) {
+      const stateRaw = await getStateInstance(credentials)
+      const state = parseStateInstance(stateRaw)
+      if (state && !isInstanceAuthorized(state)) {
         onSuccess(credentials)
-      } else {
-        onSuccess(credentials)
+        return
       }
+      onSuccess(credentials)
     } catch (err) {
-      setError(
-        err instanceof GreenApiError
-          ? [err.message, err.details].filter(Boolean).join(': ')
-          : err instanceof Error
-            ? err.message
-            : 'Не удалось подключиться',
-      )
+      setFieldErrors(mapLoginError(err))
     } finally {
       setLoading(false)
     }
   }
+
+  const inputClass = (hasError: boolean) =>
+    `${styles.input} ${hasError ? styles.inputError : ''}`
 
   return (
     <div className={styles.page} data-ui="login-screen">
@@ -77,6 +97,13 @@ export function LoginScreen({ onSuccess }: Props) {
           </div>
 
           <form className={styles.form} onSubmit={(e) => void handleSubmit(e)}>
+            {fieldErrors.banner && (
+              <div className={styles.alertBanner} role="alert">
+                <Icon name="error" />
+                {fieldErrors.banner}
+              </div>
+            )}
+
             <div className={styles.field}>
               <label htmlFor="idInstance">idInstance</label>
               <div className={styles.inputWrap}>
@@ -85,14 +112,25 @@ export function LoginScreen({ onSuccess }: Props) {
                 </span>
                 <input
                   id="idInstance"
-                  className={styles.input}
+                  className={inputClass(Boolean(fieldErrors.idInstance))}
                   value={idInstance}
                   onChange={(e) => setIdInstance(e.target.value)}
                   placeholder="Например, 1101823456"
                   autoComplete="off"
                   disabled={loading}
                 />
+                {fieldErrors.idInstance && (
+                  <span className={styles.inputErrorIcon}>
+                    <Icon name="cancel" size="sm" />
+                  </span>
+                )}
               </div>
+              {fieldErrors.idInstance && (
+                <p className={styles.fieldError}>
+                  <Icon name="warning" size="sm" />
+                  {fieldErrors.idInstance}
+                </p>
+              )}
             </div>
 
             <div className={styles.field}>
@@ -103,7 +141,7 @@ export function LoginScreen({ onSuccess }: Props) {
                 </span>
                 <input
                   id="apiTokenInstance"
-                  className={`${styles.input} ${styles.inputMono}`}
+                  className={`${inputClass(Boolean(fieldErrors.apiTokenInstance))} ${styles.inputMono}`}
                   type={showToken ? 'text' : 'password'}
                   value={apiTokenInstance}
                   onChange={(e) => setApiTokenInstance(e.target.value)}
@@ -120,6 +158,12 @@ export function LoginScreen({ onSuccess }: Props) {
                   <Icon name={showToken ? 'visibility_off' : 'visibility'} size="sm" />
                 </button>
               </div>
+              {fieldErrors.apiTokenInstance && (
+                <p className={styles.fieldError}>
+                  <Icon name="warning" size="sm" />
+                  {fieldErrors.apiTokenInstance}
+                </p>
+              )}
             </div>
 
             <div className={styles.field}>
@@ -154,8 +198,6 @@ export function LoginScreen({ onSuccess }: Props) {
               />
               Запомнить инстанс на этом устройстве
             </label>
-
-            {error && <div className={styles.error}>{error}</div>}
 
             <button type="submit" className={styles.submit} disabled={loading}>
               {loading ? 'Авторизация…' : 'Войти'}

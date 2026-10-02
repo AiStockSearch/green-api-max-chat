@@ -1,0 +1,35 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: #fff7e6;
+  border-bottom: 1px solid #ffd591;
+  color: #ad4e00;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.icon {
+  color: var(--color-error);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.text {
+  flex: 1;
+}
+
+.retryBtn {
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: #fa8c16;
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
