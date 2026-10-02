@@ -149,11 +149,14 @@ export function LoginScreen({
             </p>
           </div>
 
-          <AccountModeSwitcher mode={mode} onChange={setMode} disabled={loading} />
+          <div data-cy="account-mode-switcher">
+            <AccountModeSwitcher mode={mode} onChange={setMode} disabled={loading} />
+          </div>
 
           {mode === 'instance' ? (
             <form
               className={styles.form}
+              data-cy="form-instance"
               onSubmit={(e) => void handleInstanceSubmit(e)}
               autoComplete="on"
             >
@@ -247,13 +250,19 @@ export function LoginScreen({
               <label className={styles.checkboxRow}>
                 <input
                   type="checkbox"
+                  data-cy="remember-instance"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
                 />
                 Запомнить ключи (localStorage). По умолчанию — только сессия вкладки.
               </label>
 
-              <button type="submit" className={styles.submit} disabled={loading}>
+              <button
+                type="submit"
+                data-cy="submit-instance"
+                className={styles.submit}
+                disabled={loading}
+              >
                 {loading ? 'Проверка…' : 'Войти'}
                 {!loading && <Icon name="arrow_forward" size="sm" />}
               </button>

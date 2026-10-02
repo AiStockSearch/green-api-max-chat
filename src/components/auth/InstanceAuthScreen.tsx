@@ -175,9 +175,16 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
           {(phase === 'qr' || phase === 'checking') && (
             <div className={styles.qrBlock}>
               {qrSrc ? (
-                <img src={qrSrc} alt="QR-код для авторизации MAX" className={styles.qrImg} />
+                <img
+                  src={qrSrc}
+                  alt="QR-код для авторизации MAX"
+                  className={styles.qrImg}
+                  data-cy="qr-image"
+                />
               ) : (
-                <div className={styles.qrPlaceholder}>Загрузка QR…</div>
+                <div className={styles.qrPlaceholder} data-cy="qr-placeholder">
+                  Загрузка QR…
+                </div>
               )}
               <a className={styles.qrLink} href={qrPage} target="_blank" rel="noreferrer">
                 Открыть qr.green-api.com

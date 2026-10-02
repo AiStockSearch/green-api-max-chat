@@ -15,6 +15,7 @@ export function AccountModeSwitcher({ mode, onChange, disabled }: Props) {
         type="button"
         role="tab"
         aria-selected={mode === 'instance'}
+        data-cy="mode-instance"
         className={`${styles.tab} ${mode === 'instance' ? styles.tabActive : ''}`}
         disabled={disabled}
         onClick={() => onChange('instance')}
@@ -25,6 +26,7 @@ export function AccountModeSwitcher({ mode, onChange, disabled }: Props) {
         type="button"
         role="tab"
         aria-selected={mode === 'partner'}
+        data-cy="mode-partner"
         className={`${styles.tab} ${mode === 'partner' ? styles.tabActive : ''}`}
         disabled={disabled}
         onClick={() => onChange('partner')}
