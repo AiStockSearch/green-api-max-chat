@@ -77,7 +77,16 @@ _Добавьте URL после публикации, например: `https:
 
 ### Скриншоты / видео
 
-_Добавьте ссылки на скриншоты или демо-видео._
+Превью интерфейса (демо-данные, без реальных токенов):
+
+| Экран | Файл |
+|--------|------|
+| Вход | [docs/screenshots/01-login.png](docs/screenshots/01-login.png) |
+| Пустое состояние | [docs/screenshots/02-empty-state.png](docs/screenshots/02-empty-state.png) |
+| Модалка «Новый чат» | [docs/screenshots/03-new-chat-modal.png](docs/screenshots/03-new-chat-modal.png) |
+| Активный чат | [docs/screenshots/04-active-chat.png](docs/screenshots/04-active-chat.png) |
+
+Локальный просмотр макетов: `?demo=empty`, `?demo=modal`, `?demo=active` (после сборки или в dev). Переснять скриншоты: `npm run build && node scripts/capture-screenshots.mjs`.
 
 ## Структура проекта
 
