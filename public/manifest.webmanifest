@@ -1,0 +1,26 @@
+{
+  "name": "GREEN-API Chat",
+  "short_name": "GREEN-API Chat",
+  "description": "Чат MAX / WhatsApp / Telegram через GREEN-API: отправка и приём текстовых сообщений.",
+  "lang": "ru",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0077ff",
+  "background_color": "#f7f9fc",
+  "categories": ["communication", "productivity"],
+  "icons": [
+    { "src": "icons/pwa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/pwa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    {
+      "src": "icons/pwa-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    { "src": "icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

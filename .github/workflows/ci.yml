@@ -36,6 +36,27 @@ jobs:
       - name: Docker build
         run: docker build -t green-api-max-chat:ci .
 
+      - name: Docker smoke (nginx headers + PWA)
+        run: |
+          docker run -d --name gac -p 8080:8080 green-api-max-chat:ci
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/health && break; sleep 1; done
+          check() { # url header-regex
+            h=$(curl -sI "http://127.0.0.1:8080$1")
+            echo "$h" | grep -iE "$2" >/dev/null || { echo "FAIL $1: expected /$2/"; echo "$h"; exit 1; }
+            echo "ok $1 ~ $2"
+          }
+          check /sw.js 'cache-control: no-cache, no-store'
+          check /sw.js 'content-type: (application|text)/javascript'
+          check /manifest.webmanifest 'cache-control: no-cache'
+          check /manifest.webmanifest 'content-type: application/manifest\+json'
+          check /index.html 'cache-control: no-cache'
+          check / 'cache-control: no-cache'
+          asset=$(curl -s http://127.0.0.1:8080/ | grep -oE '/assets/[^"]+\.js' | head -1)
+          check "$asset" 'cache-control: public, max-age=31536000, immutable'
+          check /green-api-proxy/evil.example.com/x 'HTTP/1.1 403'
+          CHROME_PATH=$(which google-chrome) node scripts/verify-pwa.mjs "http://127.0.0.1:8080/?demo=active"
+          docker rm -f gac
+
   cypress-demo:
     runs-on: ubuntu-latest
     needs: quality

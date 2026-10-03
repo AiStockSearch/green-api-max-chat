@@ -191,6 +191,26 @@ npm run test:e2e
 - **Параллельный опрос**: для каждого авторизованного инстанса свой цикл `receiveNotification`/`deleteNotification` (`InstancePoller`), входящие раскладываются по чатам своего инстанса (`src/utils/inbox.ts`).
 - Демо: [`?demo=dashboard`](https://aistocksearch.github.io/green-api-max-chat/?demo=dashboard).
 
+## Установка как приложение (PWA)
+
+Приложение — устанавливаемое PWA: манифест `public/manifest.webmanifest` («GREEN-API Chat», `lang: ru`, `display: standalone`, `theme_color #0077ff`, `background_color #f7f9fc`, иконки 192/512 + maskable, apple-touch-icon 180) и Service Worker `src/pwa/sw.ts` → `dist/sw.js`. Пути в манифесте относительные, SW регистрируется от `import.meta.env.BASE_URL` — одна и та же сборка работает и на GitHub Pages (`/green-api-max-chat/`), и в Docker (`/`).
+
+**Как установить**
+
+- **Chrome / Edge (Windows, macOS, Linux):** откройте приложение → значок «Установить» в адресной строке или всплывающее «Установить GREEN-API Chat как приложение?» → «Установить». Приложение откроется в отдельном окне и появится в меню «Пуск» / Launchpad.
+- **Android (Chrome):** меню ⋮ → «Установить приложение» (или «Добавить на главный экран»), либо кнопка «Установить» во всплывающем окне приложения.
+- **iOS / iPadOS (Safari):** кнопка «Поделиться» → «На экран „Домой“» → «Добавить». Запуск с иконки — без адресной строки (`apple-mobile-web-app-capable`). Всплывающего предложения установки в iOS нет — это ограничение Safari.
+
+**Что кэшируется.** Только app shell: `index.html`, хешированные JS/CSS, манифест и иконки (precache со списком файлов, который плагин `gac-pwa` в `vite.config.ts` подставляет при сборке) и шрифты Google Fonts. Запросы к GREEN-API — **только сеть**: прямые хосты `*.green-api.com` / `*.greenapi.com`, прокси `/green-api-proxy/…` и пути `/waInstance…/`, `/partner/…` Service Worker не перехватывает, поэтому ответы API и URL с `apiTokenInstance` в Cache Storage не попадают (`src/pwa/swPolicy.ts`, unit-тесты). Ключи по-прежнему лежат только в sessionStorage/localStorage.
+
+**Офлайн.** Приложение открывается из кэша, сохранённые чаты видны, сверху — плашка «Нет сети · отправка и приём возобновятся после подключения», в шапке чата — «Нет сети». `navigator.onLine` ненадёжен, поэтому после сетевой ошибки запроса приложение дополнительно проверяет связь лёгким `HEAD sw.js` (`src/pwa/networkStatus.ts`).
+
+**Обновления.** Новая версия SW ставится в фоне и ждёт; внизу появляется «Доступна новая версия — Обновить». По кнопке SW активируется (`SKIP_WAITING`) и страница перезагружается один раз. Проверка обновлений — при каждом открытии и раз в час.
+
+**Заголовки.** nginx (Docker) отдаёт `sw.js`, `manifest.webmanifest` и `index.html` с `Cache-Control: no-cache`, `/assets/*` — `immutable`; CI проверяет заголовки и PWA в собранном контейнере. На GitHub Pages заголовки не настраиваются, но SW регистрируется с `updateViaCache: 'none'`, поэтому обновления не залипают.
+
+**Проверка:** `node scripts/verify-pwa.mjs <url>` (headless Chrome + CDP): манифест, `Page.getInstallabilityErrors`, регистрация SW, содержимое Cache Storage (нет GREEN-API/токенов), офлайн-запуск и плашка «Нет сети». Иконки пересобираются из `public/icons/app-icon.svg`: `node scripts/generate-pwa-icons.mjs`.
+
 ## Ограничения
 
 - Только **текст**; медиа и статусы не отображаются.
@@ -257,6 +277,10 @@ _Добавьте URL после публикации, например: `https:
 | После Logout → QR | docs/screenshots/19-after-logout.png |
 | Добавить инстанс | docs/screenshots/20-add-instance.png |
 | Добавить инстанс (мобильный) | docs/screenshots/21-add-instance-mobile.png |
+| PWA: предложение установки | docs/screenshots/22-pwa-install-prompt.png |
+| PWA: отдельное окно (standalone) | docs/screenshots/23-pwa-standalone.png |
+| PWA: офлайн, «Нет сети» | docs/screenshots/24-pwa-offline.png |
+| PWA: «Доступна новая версия — Обновить» | docs/screenshots/25-pwa-update.png |
 
 ## Структура проекта
 
@@ -265,6 +289,7 @@ docker/           — nginx.conf (SPA + green-api-proxy allowlist)
 src/api/          — клиент GREEN-API, same-origin прокси (devProxy.ts), уведомления
 src/hooks/        — опрос ReceiveNotification
 src/api/messengers/ — адаптеры MAX / WhatsApp / Telegram (chatId, уведомления, QR)
+src/pwa/          — Service Worker (sw.ts, swPolicy.ts), регистрация/обновление, «Нет сети»
 src/utils/        — inbox (входящие по инстансам), instances (фильтр, удаление)
 src/components/   — экран входа, layout чата, instances/ (дашборд, переключатель, опрос)
 src/styles/       — theme.css (CSS-переменные), global.css, ui.module.css

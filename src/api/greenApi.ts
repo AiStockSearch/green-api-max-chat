@@ -1,3 +1,4 @@
+import { reportNetworkFailure } from '../pwa/networkStatus'
 import { normalizeApiUrl } from './apiUrl'
 import { resolveDevProxyFetchUrl } from './devProxy'
 import type {
@@ -29,6 +30,7 @@ async function requestJson<T>(
       },
     })
   } catch (cause) {
+    reportNetworkFailure()
     const msg =
       cause instanceof Error && cause.message.toLowerCase().includes('fetch')
         ? 'Сетевая ошибка / CORS: TypeError: Failed to fetch. Проверьте apiUrl и доступ из браузера.'

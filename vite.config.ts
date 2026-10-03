@@ -1,6 +1,11 @@
+import { createHash } from 'node:crypto'
+import { readdirSync, statSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
+import { precacheEntries } from './src/pwa/precache.ts'
 
 /** Allowlist upstream-хостов GREEN-API (MAX и WhatsApp), синхронно с src/api/devProxy.ts и docker/nginx.conf. */
 const GREEN_API_UPSTREAM_HOST =
@@ -81,6 +86,57 @@ function greenApiDevProxy(): Plugin {
   }
 }
 
+function listFiles(dir: string): string[] {
+  const out: string[] = []
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name)
+    if (statSync(full).isDirectory()) out.push(...listFiles(full))
+    else out.push(full)
+  }
+  return out
+}
+
+/**
+ * PWA: собирает src/pwa/sw.ts в dist/sw.js (без хеша, в корне base) и подставляет
+ * список precache и версию (хеш списка файлов) — при каждом изменении сборки SW обновляется.
+ */
+function pwaPlugin(): Plugin {
+  let publicDir = ''
+  return {
+    name: 'gac-pwa',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(config) {
+      publicDir = config.publicDir
+    },
+    generateBundle(_opts, bundle) {
+      const sw = Object.values(bundle).find((c) => c.type === 'chunk' && c.fileName === 'sw.js')
+      if (!sw || sw.type !== 'chunk') {
+        this.error('gac-pwa: sw.js chunk not found')
+        return
+      }
+      const publicFiles = publicDir ? listFiles(publicDir).map((f) => relative(publicDir, f)) : []
+      const entries = precacheEntries(Object.keys(bundle), publicFiles)
+      const hash = createHash('sha256')
+      for (const item of Object.values(bundle).sort((x, y) =>
+        x.fileName.localeCompare(y.fileName),
+      )) {
+        if (item.fileName === 'sw.js') continue
+        hash.update(item.fileName)
+        hash.update(item.type === 'chunk' ? item.code : item.source)
+      }
+      hash.update(entries.join('\n'))
+      const version = hash.digest('hex').slice(0, 12)
+      sw.code = sw.code
+        .replace(/__PRECACHE_MANIFEST__/g, JSON.stringify(entries))
+        .replace(/__SW_VERSION__/g, JSON.stringify(version))
+      if (/^\s*(import|export)\s/m.test(sw.code)) {
+        this.error('gac-pwa: sw.js must be a classic script (no import/export)')
+      }
+    },
+  }
+}
+
 declare module 'node:http' {
   interface IncomingMessage {
     originalUrl?: string
@@ -89,7 +145,18 @@ declare module 'node:http' {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), greenApiDevProxy()],
+  plugins: [react(), greenApiDevProxy(), pwaPlugin()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        sw: fileURLToPath(new URL('./src/pwa/sw.ts', import.meta.url)),
+      },
+      output: {
+        entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js'),
+      },
+    },
+  },
   base: mode === 'production' && process.env.GITHUB_PAGES === 'true' ? '/green-api-max-chat/' : '/',
   server: {
     port: 43123,

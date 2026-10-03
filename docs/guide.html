@@ -82,6 +82,7 @@
     <li><a href="#step-6">Вход в приложение</a></li>
     <li><a href="#step-7">Чат: отправка и приём</a></li>
     <li><a href="#step-7a">Несколько инстансов</a></li>
+    <li><a href="#step-7b">Установка как приложение (PWA)</a></li>
     <li><a href="#step-8">Ошибки и состояния</a></li>
     <li><a href="#step-9">Тесты</a></li>
     <li><a href="#step-10">CI/CD</a></li>
@@ -294,6 +295,40 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
   <div class="grid2">
     <figure><img src="screenshots/18-instance-logout-confirm.png" alt="Выйти из инстанса" loading="lazy"><figcaption>Рис. 7c. Подтверждение «Выйти из инстанса» (Logout).</figcaption></figure>
     <figure><img src="screenshots/19-after-logout.png" alt="После Logout" loading="lazy"><figcaption>Рис. 7d. После Logout: статус «Неавторизован», предложение авторизоваться по QR.</figcaption></figure>
+  </div>
+</section>
+
+<!-- 7b -->
+<section class="step" id="step-7b">
+  <h2><span class="num">7b</span>Установка как приложение (PWA)</h2>
+  <p>GREEN-API Chat можно установить как отдельное приложение — с иконкой, своим окном и запуском без адресной строки. Работает и на GitHub Pages, и в Docker.</p>
+  <h3>Компьютер (Chrome, Edge)</h3>
+  <ol class="substeps">
+    <li>Откройте приложение. Внизу появится «Установить GREEN-API Chat как приложение?» — нажмите «Установить». Либо нажмите значок установки справа в адресной строке.</li>
+    <li>Приложение откроется в отдельном окне и появится в меню «Пуск» / Launchpad / списке приложений.</li>
+  </ol>
+  <h3>Android (Chrome)</h3>
+  <ol class="substeps">
+    <li>Нажмите «Установить» во всплывающем окне приложения или меню ⋮ → «Установить приложение» («Добавить на главный экран»).</li>
+  </ol>
+  <h3>iPhone и iPad (Safari)</h3>
+  <ol class="substeps">
+    <li>Кнопка «Поделиться» → «На экран „Домой“» → «Добавить». Всплывающего предложения в iOS нет — так устроен Safari.</li>
+    <li>Запускайте с иконки на экране «Домой»: приложение откроется без панелей браузера.</li>
+  </ol>
+  <h3>Офлайн и обновления</h3>
+  <ul>
+    <li>Service Worker кэширует только оболочку приложения (HTML, JS, CSS, иконки, манифест) и шрифты. <strong>Запросы к GREEN-API никогда не кэшируются</strong> — они всегда идут в сеть, поэтому токены не попадают в кэш браузера.</li>
+    <li>Без сети приложение открывается, сохранённые чаты видны, сверху — плашка «Нет сети»; отправка и приём возобновятся после подключения.</li>
+    <li>Когда выходит новая версия, внизу появляется «Доступна новая версия — Обновить»: по кнопке страница перезагрузится уже с новой версией.</li>
+  </ul>
+  <div class="grid2">
+    <figure><img src="screenshots/22-pwa-install-prompt.png" alt="Предложение установки" loading="lazy"><figcaption>Рис. 7g. Предложение установки.</figcaption></figure>
+    <figure><img src="screenshots/23-pwa-standalone.png" alt="Отдельное окно" loading="lazy"><figcaption>Рис. 7h. Установленное приложение в отдельном окне.</figcaption></figure>
+  </div>
+  <div class="grid2">
+    <figure><img src="screenshots/24-pwa-offline.png" alt="Нет сети" loading="lazy"><figcaption>Рис. 7i. Офлайн: плашка «Нет сети».</figcaption></figure>
+    <figure><img src="screenshots/25-pwa-update.png" alt="Обновление" loading="lazy"><figcaption>Рис. 7j. «Доступна новая версия — Обновить».</figcaption></figure>
   </div>
 </section>
 

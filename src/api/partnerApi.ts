@@ -1,3 +1,4 @@
+import { reportNetworkFailure } from '../pwa/networkStatus'
 import { DEFAULT_API_URL } from './constants'
 import { resolveDevProxyFetchUrl } from './devProxy'
 import { normalizeApiUrl } from './greenApi'
@@ -81,6 +82,7 @@ async function partnerRequest<T>(
       },
     })
   } catch {
+    reportNetworkFailure()
     throw new GreenApiError(
       'Сетевая ошибка / CORS: не удалось вызвать Partner API из браузера.',
     )

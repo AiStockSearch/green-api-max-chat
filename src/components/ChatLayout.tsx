@@ -30,6 +30,7 @@ import { LogoutConfirmModal } from './LogoutConfirmModal'
 import { NetworkErrorBanner } from './NetworkErrorBanner'
 import styles from './ChatLayout.module.css'
 import { NewChatPanel } from './NewChatPanel'
+import { useOnline } from '../pwa/usePwa'
 import { InstanceSwitcher } from './instances/InstanceSwitcher'
 import { MessengerBadge } from './instances/MessengerBadge'
 import {
@@ -53,7 +54,9 @@ interface Props {
   chats: Chat[]
   messages: StoredMessage[]
   onChatsChange: (chats: Chat[]) => void
-  onMessagesChange: (updater: StoredMessage[] | ((prev: StoredMessage[]) => StoredMessage[])) => void
+  onMessagesChange: (
+    updater: StoredMessage[] | ((prev: StoredMessage[]) => StoredMessage[]),
+  ) => void
   pollError: string | null
   onPollError: (error: string | null) => void
   initialModalOpen?: boolean
@@ -87,6 +90,7 @@ export function ChatLayout({
   defaultSelectedChatId,
 }: Props) {
   const demoVariant = getDemoVariant()
+  const online = useOnline()
   const filterProfile = filter === 'all' ? null : (profiles.find((p) => p.id === filter) ?? null)
   const chats = visibleChats(allChats, filter, profiles)
   const channel = filterProfile ? adapterFor(filterProfile).label : 'все инстансы'
@@ -132,8 +136,7 @@ export function ChatLayout({
   const pollKind = effectivePollError ? classifyPollError(effectivePollError) : null
 
   const showMobileChatPane =
-    isMobile &&
-    (demoVariant === 'mobile-chat' || (mobileShowChat && Boolean(selectedChat)))
+    isMobile && (demoVariant === 'mobile-chat' || (mobileShowChat && Boolean(selectedChat)))
 
   const shellClass = [
     styles.shell,
@@ -214,9 +217,7 @@ export function ChatLayout({
     }
     onMessagesChange((prev) =>
       prev.map((m) =>
-        m.id === localId
-          ? { ...m, status: 'sending' as const, error: undefined, text }
-          : m,
+        m.id === localId ? { ...m, status: 'sending' as const, error: undefined, text } : m,
       ),
     )
     setSending(true)
@@ -225,9 +226,7 @@ export function ChatLayout({
       const res = await sendMessage(selectedProfile, selectedChat.chatId, text)
       onMessagesChange((prev) =>
         prev.map((m) =>
-          m.id === localId
-            ? { ...m, status: 'sent' as const, idMessage: res.idMessage }
-            : m,
+          m.id === localId ? { ...m, status: 'sent' as const, idMessage: res.idMessage } : m,
         ),
       )
     } catch (err) {
@@ -383,7 +382,9 @@ export function ChatLayout({
                 <Icon name="chat" filled />
               </div>
               <div>
-                <div className={styles.brandTitle}>GREEN-API · {filterProfile ? channel : 'Все'}</div>
+                <div className={styles.brandTitle}>
+                  GREEN-API · {filterProfile ? channel : 'Все'}
+                </div>
                 <div className={styles.onlineRow}>
                   <span className={styles.onlineDot} style={{ background: '#fa8c16' }} />
                   Не авторизован
@@ -429,9 +430,12 @@ export function ChatLayout({
             </div>
             <div>
               <div className={styles.brandTitle}>GREEN-API · {filterProfile ? channel : 'Все'}</div>
-              <div className={styles.onlineRow}>
-                <span className={styles.onlineDot} />
-                В сети
+              <div className={styles.onlineRow} data-cy="network-status">
+                <span
+                  className={styles.onlineDot}
+                  style={online ? undefined : { background: 'var(--color-outline)' }}
+                />
+                {online ? 'В сети' : 'Нет сети'}
               </div>
             </div>
           </div>
@@ -463,7 +467,12 @@ export function ChatLayout({
             </button>
           </div>
         </div>
-        <InstanceSwitcher profiles={profiles} states={states} value={filter} onChange={onFilterChange} />
+        <InstanceSwitcher
+          profiles={profiles}
+          states={states}
+          value={filter}
+          onChange={onFilterChange}
+        />
 
         <div className={styles.panel}>
           <div className={styles.searchWrap}>
@@ -525,9 +534,7 @@ export function ChatLayout({
                     className={`${styles.chatItem} ${isActive ? styles.chatItemActive : ''}`}
                     onClick={() => selectChat(chat.id)}
                   >
-                    <div
-                      className={`${styles.avatar} ${index % 2 === 1 ? styles.avatarAlt : ''}`}
-                    >
+                    <div className={`${styles.avatar} ${index % 2 === 1 ? styles.avatarAlt : ''}`}>
                       {avatarLabel(chat.title)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -598,8 +605,8 @@ export function ChatLayout({
             </div>
             <h2 className={styles.emptyTitle}>Выберите чат или создайте новый</h2>
             <p className={styles.emptyText}>
-              Отправляйте сообщения и получайте ответы через надёжный шлюз GREEN-API для
-              мессенджера {channel}.
+              Отправляйте сообщения и получайте ответы через надёжный шлюз GREEN-API для мессенджера{' '}
+              {channel}.
             </p>
             <button type="button" className={styles.emptyCta} onClick={() => setNewChatOpen(true)}>
               <Icon name="add" size="sm" />
@@ -640,7 +647,7 @@ export function ChatLayout({
                     {selectedProfile
                       ? `${adapterFor(selectedProfile).label} · ${selectedProfile.label} · `
                       : ''}
-                    GREEN-API • В сети
+                    GREEN-API • {online ? 'В сети' : 'Нет сети'}
                   </p>
                 </div>
               </div>
@@ -665,66 +672,67 @@ export function ChatLayout({
               ) : null}
               {!showSyncLoading &&
                 messageGroups.map((group) => (
-                <div key={group.label}>
-                  <div className={styles.dateDivider}>
-                    <span>{group.label}</span>
-                  </div>
-                  {group.items.map((m) => {
-                    const outgoing = m.direction === 'outgoing'
-                    return (
-                      <div
-                        key={m.id}
-                        className={`${styles.bubbleRow} ${outgoing ? styles.bubbleRowOut : ''}`}
-                      >
-                        {!outgoing && (
-                          <div className={styles.miniAvatar}>{avatarLabel(selectedChat.title)}</div>
-                        )}
+                  <div key={group.label}>
+                    <div className={styles.dateDivider}>
+                      <span>{group.label}</span>
+                    </div>
+                    {group.items.map((m) => {
+                      const outgoing = m.direction === 'outgoing'
+                      return (
                         <div
-                          className={`${styles.bubble} ${outgoing ? styles.bubbleOut : styles.bubbleIn} ${m.status === 'failed' ? styles.bubbleFailed : ''}`}
+                          key={m.id}
+                          className={`${styles.bubbleRow} ${outgoing ? styles.bubbleRowOut : ''}`}
                         >
-                          <p>{m.text}</p>
-                          <div
-                            className={`${styles.bubbleMeta} ${outgoing ? styles.bubbleMetaOut : ''}`}
-                          >
-                            <span>
-                              {formatMessageTime(m.timestamp)}
-                              {m.status === 'sending' && ' · отправляется'}
-                            </span>
-                            {outgoing && m.status === 'sending' && (
-                              <Icon name="schedule" size="sm" />
-                            )}
-                            {outgoing && m.status === 'sent' && (
-                              <Icon name="done_all" filled size="sm" className={styles.ticks} />
-                            )}
-                          </div>
-                          {m.status === 'failed' && (
-                            <div className={styles.failRow}>
-                              <span>Не отправлено</span>
-                              <button
-                                type="button"
-                                className={styles.retryLink}
-                                onClick={() => retryMessage(m)}
-                              >
-                                Повторить
-                              </button>
+                          {!outgoing && (
+                            <div className={styles.miniAvatar}>
+                              {avatarLabel(selectedChat.title)}
                             </div>
                           )}
-                          {m.error && m.status === 'failed' && (
-                            <p className={styles.failDetail}>{m.error}</p>
-                          )}
+                          <div
+                            className={`${styles.bubble} ${outgoing ? styles.bubbleOut : styles.bubbleIn} ${m.status === 'failed' ? styles.bubbleFailed : ''}`}
+                          >
+                            <p>{m.text}</p>
+                            <div
+                              className={`${styles.bubbleMeta} ${outgoing ? styles.bubbleMetaOut : ''}`}
+                            >
+                              <span>
+                                {formatMessageTime(m.timestamp)}
+                                {m.status === 'sending' && ' · отправляется'}
+                              </span>
+                              {outgoing && m.status === 'sending' && (
+                                <Icon name="schedule" size="sm" />
+                              )}
+                              {outgoing && m.status === 'sent' && (
+                                <Icon name="done_all" filled size="sm" className={styles.ticks} />
+                              )}
+                            </div>
+                            {m.status === 'failed' && (
+                              <div className={styles.failRow}>
+                                <span>Не отправлено</span>
+                                <button
+                                  type="button"
+                                  className={styles.retryLink}
+                                  onClick={() => retryMessage(m)}
+                                >
+                                  Повторить
+                                </button>
+                              </div>
+                            )}
+                            {m.error && m.status === 'failed' && (
+                              <p className={styles.failDetail}>{m.error}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
+                      )
+                    })}
+                  </div>
+                ))}
               <div ref={messagesEndRef} />
             </div>
 
             {(sendError || pollKind === 'network' || pollKind === 'cors') && (
               <p className={styles.composerError}>
-                {sendError ??
-                  'Ошибка сети: NetworkError / CORS preflight failed'}
+                {sendError ?? 'Ошибка сети: NetworkError / CORS preflight failed'}
               </p>
             )}
 
