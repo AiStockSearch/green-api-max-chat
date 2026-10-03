@@ -1,7 +1,7 @@
 # GREEN-API MAX Chat (тестовое задание)
 
-![CI](https://github.com/Js-Nanodegree/green-api-max-chat/actions/workflows/ci.yml/badge.svg)
-![Deploy](https://github.com/Js-Nanodegree/green-api-max-chat/actions/workflows/deploy.yml/badge.svg)
+![CI](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/ci.yml/badge.svg)
+![Deploy](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/deploy.yml/badge.svg)
 
 Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
 
@@ -15,7 +15,7 @@
 ## Клонирование
 
 ```bash
-git clone https://github.com/Js-Nanodegree/green-api-max-chat.git
+git clone https://github.com/AiStockSearch/green-api-max-chat.git
 cd green-api-max-chat
 ```
 
