@@ -19,7 +19,7 @@ export function TopNavBar({ appNav }: Props) {
           <div className={styles.logoMark}>
             <Icon name="chat" filled size="md" />
           </div>
-          <span className={styles.brandName}>GREEN-API MAX</span>
+          <span className={styles.brandName}>GREEN-API Chat</span>
           <div className={styles.statusPill}>
             <span className={styles.statusDot} />
             Серверы онлайн

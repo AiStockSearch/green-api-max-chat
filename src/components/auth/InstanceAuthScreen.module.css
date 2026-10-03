@@ -104,6 +104,20 @@
   gap: var(--space-sm);
 }
 
+.passwordForm form {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.passwordForm label {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-semibold);
+}
+
+.passwordForm form .primaryBtn {
+  justify-self: start;
+}
+
 .passwordForm input {
   padding: 10px 12px;
   border-radius: var(--radius-sm);

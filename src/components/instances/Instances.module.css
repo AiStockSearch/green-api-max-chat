@@ -1,40 +1,8 @@
-.mBadge {
+.mIcon {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.02em;
   flex-shrink: 0;
-}
-.mBadge_sm {
-  min-width: 22px;
-  height: 18px;
-  font-size: 9px;
-  padding: 0 4px;
-  border-radius: 6px;
-}
-.mBadge_md {
-  min-width: 32px;
-  height: 26px;
-  font-size: 11px;
-  padding: 0 6px;
-}
-.mBadge_lg {
-  min-width: 44px;
-  height: 44px;
-  font-size: 13px;
-  border-radius: 12px;
-}
-.mBadge_whatsapp {
-  background: #25d366;
-}
-.mBadge_telegram {
-  background: #229ed9;
-}
-.mBadge_max {
-  background: linear-gradient(135deg, #0077ff, #5b3cdd);
+  vertical-align: middle;
+  line-height: 0;
 }
 
 .dot {

@@ -1,14 +1,32 @@
-# GREEN-API MAX Chat (тестовое задание)
+# GREEN-API Chat — WhatsApp, Telegram и MAX (тестовое задание)
 
 ![CI](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/ci.yml/badge.svg)
 ![Deploy](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/deploy.yml/badge.svg)
 ![Pages](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/deploy-pages.yml/badge.svg)
 
-🌐 **GitHub Pages:** [демо-приложение](https://aistocksearch.github.io/green-api-max-chat/?demo=active) · [пошаговое руководство](https://aistocksearch.github.io/green-api-max-chat/guide.html)
+🌐 **Онлайн-демо:** [инстансы (`?demo=dashboard`)](https://aistocksearch.github.io/green-api-max-chat/?demo=dashboard) · [чат (`?demo=active`)](https://aistocksearch.github.io/green-api-max-chat/?demo=active) · [приложение](https://aistocksearch.github.io/green-api-max-chat/)
 
-📘 **Пошаговое руководство (HTML):** [https://aistocksearch.github.io/green-api-max-chat/guide.html](https://aistocksearch.github.io/green-api-max-chat/guide.html) (исходник: [docs/guide.html](docs/guide.html)) — инстанс MAX, QR-авторизация, запуск локально и в Docker, тесты, CI/CD, FAQ.
+📘 **Пошаговое руководство:** [https://aistocksearch.github.io/green-api-max-chat/guide.html](https://aistocksearch.github.io/green-api-max-chat/guide.html) (исходник: [docs/guide.html](docs/guide.html))
 
-Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Если MAX недоступен, ТЗ допускает WhatsApp или Telegram — в приложении есть режимы **WhatsApp** и **Telegram** (переключатель «Мессенджер» на экране входа). Можно подключить **несколько инстансов сразу** (WhatsApp + Telegram + MAX): экран «Инстансы», единый список чатов с бейджами мессенджеров и параллельный опрос очередей. Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
+Веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в **WhatsApp, Telegram и MAX** через [GREEN-API](https://green-api.com). Можно подключить **несколько инстансов сразу**: экран «Инстансы» со статусами, общий список чатов с иконками мессенджеров, фильтр по инстансу и параллельный опрос очередей. Приложение устанавливается как **PWA** (компьютер, Android, iOS) и открывается без сети. Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка справа.
+
+![Экран «Инстансы»](docs/screenshots/08-instances-dashboard.png)
+
+### Разделы руководства
+
+1. [Обзор: WhatsApp / Telegram / MAX, несколько инстансов, PWA](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-1)
+2. [Получение ключей в консоли GREEN-API](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-2)
+3. [Добавление инстанса: карточки мессенджеров, «Режим партнёра»](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-3)
+4. [Экран «Инстансы»: статусы, «Обновить статусы», «Все чаты»](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-4)
+5. [Авторизация: QR и вход по коду](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-5)
+6. [Чаты: общий список, фильтр, новый чат с выбором инстанса, отправка и приём](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-6)
+7. [«Выйти из инстанса» и «Убрать из приложения»](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-7)
+8. [Установка как приложение (PWA): компьютер, Android, iOS; офлайн; обновления](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-8)
+9. [Запуск локально и в Docker, демо-режимы](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-9)
+10. [Ошибки и состояния](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-10)
+11. [Тесты](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-11)
+12. [CI/CD и GitHub Pages](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-12)
+13. [FAQ](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-13)
 
 ## Стек
 
@@ -183,11 +201,11 @@ npm run test:e2e
 
 ## Несколько инстансов
 
-- **Экран «Инстансы»** (как в консоли GREEN-API): карточка на каждый подключённый инстанс — бейдж мессенджера (WA / TG / MAX), название, idInstance, статус `getStateInstance` (Авторизован / Неавторизован / …), кнопки «Открыть», «QR / авторизация», «Обновить статусы».
+- **Экран «Инстансы»** (как в консоли GREEN-API): карточка на каждый подключённый инстанс — иконка мессенджера (WhatsApp / Telegram / MAX), название, idInstance, статус `getStateInstance` (Авторизован / Неавторизован / …), кнопки «Открыть», «QR / авторизация», «Обновить статусы».
 - **«Добавить инстанс»** — выбор WhatsApp / Telegram / MAX → форма ключей (необязательное «Название»). Профиль хранится по id `messenger:idInstance`: с «Запомнить» — в localStorage, без — в sessionStorage (`src/api/profilesStore.ts`). Старая одиночная сессия мигрирует автоматически.
 - **«Выйти из инстанса»** — после подтверждения в модалке вызывается метод GREEN-API **Logout**: аккаунт мессенджера отвязывается, статус становится `notAuthorized`, приложение предлагает **«Авторизовать по QR»**. Профиль остаётся в приложении. Доступно на карточке и иконкой выхода в чате (при фильтре по инстансу).
 - **«Убрать из приложения»** — после подтверждения удаляет профиль и его локальные чаты/сообщения **без запросов к API** (инстанс в GREEN-API не трогается).
-- **«Все чаты»** — единый список чатов всех инстансов с бейджем мессенджера; переключатель над списком фильтрует по инстансу. Отправка идёт через инстанс, которому принадлежит чат; новый чат в режиме «Все» создаётся с выбором инстанса.
+- **«Все чаты»** — единый список чатов всех инстансов с иконкой мессенджера; переключатель над списком фильтрует по инстансу. Отправка идёт через инстанс, которому принадлежит чат; новый чат в режиме «Все» создаётся с выбором инстанса.
 - **Параллельный опрос**: для каждого авторизованного инстанса свой цикл `receiveNotification`/`deleteNotification` (`InstancePoller`), входящие раскладываются по чатам своего инстанса (`src/utils/inbox.ts`).
 - Демо: [`?demo=dashboard`](https://aistocksearch.github.io/green-api-max-chat/?demo=dashboard).
 
@@ -226,61 +244,63 @@ npm run test:e2e
 
 ### Ссылка на деплой
 
-_Добавьте URL после публикации, например: `https://your-app.vercel.app`_
+- Демо и PWA: https://aistocksearch.github.io/green-api-max-chat/ (`?demo=dashboard`, `?demo=active`)
+- Руководство: https://aistocksearch.github.io/green-api-max-chat/guide.html
+- Docker-образ: `ghcr.io/aistocksearch/green-api-max-chat:main`
 
-### Скриншоты / видео
+### Скриншоты
 
-Превью интерфейса (демо-данные, без реальных токенов):
+Все кадры сняты в демо-режиме (без реальных ключей) в headless Chrome. Подробные пояснения — в [руководстве](https://aistocksearch.github.io/green-api-max-chat/guide.html).
 
 | Экран | Файл |
-|--------|------|
-| Вход | [docs/screenshots/01-login.png](docs/screenshots/01-login.png) |
-| Пустое состояние | [docs/screenshots/02-empty-state.png](docs/screenshots/02-empty-state.png) |
-| Модалка «Новый чат» | [docs/screenshots/03-new-chat-modal.png](docs/screenshots/03-new-chat-modal.png) |
-| Активный чат | [docs/screenshots/04-active-chat.png](docs/screenshots/04-active-chat.png) |
-| Ошибка входа | [docs/screenshots/05-login-error.png](docs/screenshots/05-login-error.png) |
-| Инстанс не авторизован | [docs/screenshots/06-instance-unauthorized.png](docs/screenshots/06-instance-unauthorized.png) |
-| Сеть / CORS | [docs/screenshots/07-network-error.png](docs/screenshots/07-network-error.png) |
-| Загрузка / скелетоны | [docs/screenshots/08-loading.png](docs/screenshots/08-loading.png) |
-| Выход из инстанса | [docs/screenshots/09-logout-confirm.png](docs/screenshots/09-logout-confirm.png) |
-| Мобильный список чатов | [docs/screenshots/10-mobile-chat-list.png](docs/screenshots/10-mobile-chat-list.png) |
-| Мобильный активный чат | [docs/screenshots/11-mobile-active-chat.png](docs/screenshots/11-mobile-active-chat.png) |
+|-------|------|
+| Вход: карточки мессенджеров | [01-login.png](docs/screenshots/01-login.png) |
+| «Добавить инстанс» (← Инстансы) | [02-add-instance.png](docs/screenshots/02-add-instance.png) |
+| Вход на мобильном (390 px) | [03-add-instance-mobile.png](docs/screenshots/03-add-instance-mobile.png) |
+| Вкладка «Режим партнёра» | [04-partner-tab.png](docs/screenshots/04-partner-tab.png) |
+| Регистрация | [05-register.png](docs/screenshots/05-register.png) |
+| Инстансы партнёра | [06-partner-instances.png](docs/screenshots/06-partner-instances.png) |
+| Partner: createInstance | [07-create-instance.png](docs/screenshots/07-create-instance.png) |
+| Экран «Инстансы» | [08-instances-dashboard.png](docs/screenshots/08-instances-dashboard.png) |
+| «Инстансы» на мобильном | [09-instances-dashboard-mobile.png](docs/screenshots/09-instances-dashboard-mobile.png) |
+| Авторизация по QR | [10-instance-qr-auth.png](docs/screenshots/10-instance-qr-auth.png) |
+| Telegram: QR и вход по коду | [11-telegram-code-auth.png](docs/screenshots/11-telegram-code-auth.png) |
+| «Все чаты»: общий список | [12-all-chats.png](docs/screenshots/12-all-chats.png) |
+| Фильтр по инстансу | [13-chat-filter.png](docs/screenshots/13-chat-filter.png) |
+| «Новый чат» с выбором инстанса | [14-new-chat-modal.png](docs/screenshots/14-new-chat-modal.png) |
+| Активный чат | [15-active-chat.png](docs/screenshots/15-active-chat.png) |
+| Пустое состояние | [16-empty-state.png](docs/screenshots/16-empty-state.png) |
+| Мобильный список чатов | [17-mobile-chat-list.png](docs/screenshots/17-mobile-chat-list.png) |
+| Мобильный чат | [18-mobile-active-chat.png](docs/screenshots/18-mobile-active-chat.png) |
+| «Выйти из инстанса?» (Logout) | [19-instance-logout-confirm.png](docs/screenshots/19-instance-logout-confirm.png) |
+| Logout из шапки чата | [20-chat-logout-confirm.png](docs/screenshots/20-chat-logout-confirm.png) |
+| После Logout → «Авторизовать по QR» | [21-after-logout.png](docs/screenshots/21-after-logout.png) |
+| «Убрать из приложения?» | [22-remove-confirm.png](docs/screenshots/22-remove-confirm.png) |
+| Инстанс не авторизован | [23-instance-unauthorized.png](docs/screenshots/23-instance-unauthorized.png) |
+| Сеть / CORS, «Повторить» | [24-network-error.png](docs/screenshots/24-network-error.png) |
+| Загрузка | [25-loading.png](docs/screenshots/25-loading.png) |
+| Неверные ключи | [26-login-error.png](docs/screenshots/26-login-error.png) |
+| PWA: предложение установки | [27-pwa-install-prompt.png](docs/screenshots/27-pwa-install-prompt.png) |
+| PWA: отдельное окно | [28-pwa-standalone.png](docs/screenshots/28-pwa-standalone.png) |
+| PWA: «Нет сети» | [29-pwa-offline.png](docs/screenshots/29-pwa-offline.png) |
+| PWA: «Доступна новая версия — Обновить» | [30-pwa-update.png](docs/screenshots/30-pwa-update.png) |
 
 Демо-режим (без реальных токенов), query-параметр `demo`:
 
 | `demo=` | Что показывает |
 |---------|----------------|
-| `error` | Экран входа с баннером и inline-ошибками полей |
-| `unauthorized` | Карточка «Инстанс не авторизован в MAX», кнопка «Проверить снова» (GetStateInstance) |
-| `network` | Баннер CORS/сети, неотправленное сообщение с «Повторить» |
-| `loading` | Скелетоны списка и переписки, статус «отправляется» |
-| `mobile-list` | Список чатов на ширине ≤768px |
-| `mobile-chat` | Активный чат на мобильном с кнопкой «назад» |
-| `logout` | Модалка подтверждения выхода |
-| `empty`, `modal`, `active` | Как раньше: пустой layout, модалка нового чата, диалог |
-| `register` | Экран «Регистрация» (ссылка на console.green-api.com) |
-| `partner` | Список инстансов партнёра (демо-данные) |
-| `create-instance` | Partner: форма createInstance раскрыта |
+| `dashboard` | Экран «Инстансы»: WhatsApp, Telegram, MAX; «Все чаты», Logout, «Убрать» |
+| `active`, `empty`, `modal` | Диалог, пустое состояние, модалка «Новый чат» |
 | `instance-qr` | Экран авторизации QR / getStateInstance |
+| `error` | Экран входа с баннером и inline-ошибками полей |
+| `unauthorized` | Карточка «Инстанс не авторизован», «Проверить снова» |
+| `network` | Баннер CORS/сети, неотправленное сообщение с «Повторить» |
+| `loading` | Скелетоны списка и переписки |
+| `logout` | Подтверждение «Выйти из инстанса» в чате |
+| `register`, `partner`, `create-instance` | Регистрация, инстансы партнёра, форма createInstance |
+| `mobile-list`, `mobile-chat` | Мобильная вёрстка (≤768px) |
 
-Переснять скриншоты: `npm run build && npm run screenshots` (или `node scripts/capture-screenshots.mjs`).
-
-| Экран аккаунта | Файл |
-|----------------|------|
-| Регистрация | docs/screenshots/12-register.png |
-| Partner: инстансы | docs/screenshots/13-partner-instances.png |
-| Partner: createInstance | docs/screenshots/14-create-instance.png |
-| Авторизация QR | docs/screenshots/15-instance-qr-auth.png |
-| Инстансы (несколько) | docs/screenshots/16-instances-dashboard.png |
-| Все чаты (единый список) | docs/screenshots/17-all-chats.png |
-| Выйти из инстанса (Logout) | docs/screenshots/18-instance-logout-confirm.png |
-| После Logout → QR | docs/screenshots/19-after-logout.png |
-| Добавить инстанс | docs/screenshots/20-add-instance.png |
-| Добавить инстанс (мобильный) | docs/screenshots/21-add-instance-mobile.png |
-| PWA: предложение установки | docs/screenshots/22-pwa-install-prompt.png |
-| PWA: отдельное окно (standalone) | docs/screenshots/23-pwa-standalone.png |
-| PWA: офлайн, «Нет сети» | docs/screenshots/24-pwa-offline.png |
-| PWA: «Доступна новая версия — Обновить» | docs/screenshots/25-pwa-update.png |
+Переснять скриншоты: `npm run screenshots` (сборка + `scripts/capture-screenshots.mjs` для 01–26 и `scripts/capture-pwa-screenshots.mjs` для 27, 29, 30; кадр 28 — окно `chrome --app=…/?demo=active`).
 
 ## Структура проекта
 

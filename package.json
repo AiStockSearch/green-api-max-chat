@@ -16,7 +16,7 @@
     "cy:run": "node scripts/ensure-cypress-env.mjs && CYPRESS=1 start-server-and-test \"npm run dev -- --port 43128\" http://127.0.0.1:43128 cy:run:only",
     "cy:run:only": "cypress run",
     "test:e2e": "npm run cy:run",
-    "screenshots": "npm run build && node scripts/capture-screenshots.mjs",
+    "screenshots": "npm run build && node scripts/capture-screenshots.mjs && node scripts/capture-pwa-screenshots.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

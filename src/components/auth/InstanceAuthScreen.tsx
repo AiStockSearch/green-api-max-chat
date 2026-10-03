@@ -8,11 +8,7 @@ import {
 } from '../../api/instanceAuthPolling'
 import { adapterFor } from '../../api/messengers'
 import { telegramAuthPhone, telegramAuthReasonText } from '../../api/telegram'
-import {
-  parseQrResponse,
-  qrDataUrlFromMessage,
-  isQrAlreadyAuthorized,
-} from '../../api/qrAuth'
+import { parseQrResponse, qrDataUrlFromMessage, isQrAlreadyAuthorized } from '../../api/qrAuth'
 import {
   fetchInstanceQr,
   getStateInstance,
@@ -29,8 +25,34 @@ import { SiteFooter } from '../layout/SiteFooter'
 import { TopNavBar } from '../layout/TopNavBar'
 import styles from './InstanceAuthScreen.module.css'
 
-const DEMO_QR =
-  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmNGY4Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMDA1OWMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5RUiBNQVg8L3RleHQ+PC9zdmc+'
+/** Демо-QR: узор «как у QR» (не кодирует данные), чтобы скриншоты выглядели реалистично. */
+const DEMO_QR = (() => {
+  const n = 25
+  const cells: string[] = []
+  const finder = (x: number, y: number) =>
+    `<rect x="${x}" y="${y}" width="7" height="7" fill="#111"/>` +
+    `<rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#fff"/>` +
+    `<rect x="${x + 2}" y="${y + 2}" width="3" height="3" fill="#111"/>`
+  const inFinder = (x: number, y: number) =>
+    (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9)
+  let seed = 7
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      seed = (seed * 1103515245 + 12345) % 2147483648
+      if (!inFinder(x, y) && seed % 100 < 47) {
+        cells.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`)
+      }
+    }
+  }
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges">` +
+    `<rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><g fill="#111">${cells.join('')}</g>` +
+    finder(0, 0) +
+    finder(n - 7, 0) +
+    finder(0, n - 7) +
+    '</svg>'
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+})()
 
 interface Props {
   credentials: GreenApiCredentials
@@ -39,7 +61,9 @@ interface Props {
 }
 
 export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props) {
-  const [phase, setPhase] = useState<'checking' | 'qr' | 'pending_password' | 'authorized' | 'blocked' | 'error'>('checking')
+  const [phase, setPhase] = useState<
+    'checking' | 'qr' | 'pending_password' | 'authorized' | 'blocked' | 'error'
+  >('checking')
   const [qrSrc, setQrSrc] = useState<string | null>(null)
   const [statusText, setStatusText] = useState('Проверка состояния инстанса…')
   const [password, setPassword] = useState('')

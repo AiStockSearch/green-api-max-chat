@@ -16,26 +16,30 @@ export function RegisterScreen({ onGoLogin }: Props) {
       <TopNavBar appNav={{ onLogin: onGoLogin, active: 'register' }} />
       <main className={styles.main}>
         <div className={styles.card}>
-          <div className={styles.brandBlock}>
-            <div className={styles.badge}>
-              <Icon name="forum" filled size="sm" />
-              GREEN-API MAX
-            </div>
+          <header className={styles.header}>
             <h1 className={styles.title}>Регистрация</h1>
             <p className={styles.subtitle}>
-              У GREEN-API нет публичного API регистрации конечных пользователей. Аккаунт
-              личного кабинета создаётся на официальном сайте.
+              Аккаунт GREEN-API создаётся на официальном сайте — публичного API регистрации нет.
             </p>
-          </div>
+          </header>
 
-          <div className={styles.alertBanner} role="status" style={{ background: 'var(--color-surface-container)' }}>
+          <div
+            className={styles.alertBanner}
+            role="status"
+            style={{
+              background: 'var(--color-surface-container)',
+              borderColor: 'var(--color-outline-variant)',
+              color: 'var(--color-on-surface)',
+              marginTop: 24,
+            }}
+          >
             <Icon name="info" />
             <span>
               Зарегистрируйтесь в{' '}
               <a href="https://console.green-api.com" target="_blank" rel="noreferrer">
                 console.green-api.com
               </a>
-              , создайте инстанс MAX и скопируйте <code>idInstance</code> /{' '}
+              , создайте инстанс (WhatsApp, Telegram или MAX) и скопируйте <code>idInstance</code> /{' '}
               <code>apiTokenInstance</code>. Для партнёрского режима запросите{' '}
               <code>partnerToken</code> у support@green-api.com.
             </span>
@@ -43,10 +47,11 @@ export function RegisterScreen({ onGoLogin }: Props) {
 
           <ul className={styles.registerList}>
             <li>
-              <strong>Режим «Инстанс»</strong> — вход по ключам одного инстанса (текущий чат).
+              <strong>«По ключам инстанса»</strong> — добавление инстанса по idInstance и
+              apiTokenInstance; инстансов может быть несколько.
             </li>
             <li>
-              <strong>Режим «Партнёр»</strong> — Partner API: getInstances, createInstance,
+              <strong>«Режим партнёра»</strong> — Partner API: getInstances, createInstance,
               deleteInstanceAccount, затем авторизация инстанса (QR / getStateInstance).
             </li>
           </ul>

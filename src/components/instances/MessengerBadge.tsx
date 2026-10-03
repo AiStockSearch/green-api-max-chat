@@ -1,8 +1,9 @@
 import type { Messenger } from '../../api/messenger'
 import { MESSENGER_LABELS } from '../../api/messenger'
+import { MessengerIcon } from '../icons/MessengerIcon'
 import styles from './Instances.module.css'
 
-const SHORT: Record<Messenger, string> = { whatsapp: 'WA', telegram: 'TG', max: 'MAX' }
+const PX = { sm: 16, md: 24, lg: 40 } as const
 
 export function MessengerBadge({
   messenger,
@@ -13,12 +14,13 @@ export function MessengerBadge({
 }) {
   return (
     <span
-      className={`${styles.mBadge} ${styles[`mBadge_${messenger}`]} ${styles[`mBadge_${size}`]}`}
+      className={styles.mIcon}
       title={MESSENGER_LABELS[messenger]}
+      role="img"
       aria-label={MESSENGER_LABELS[messenger]}
       data-cy={`messenger-badge-${messenger}`}
     >
-      {SHORT[messenger]}
+      <MessengerIcon messenger={messenger} size={PX[size]} />
     </span>
   )
 }
