@@ -18,6 +18,12 @@ import { SiteFooter } from './layout/SiteFooter'
 import { TopNavBar } from './layout/TopNavBar'
 import styles from './LoginScreen.module.css'
 
+const MESSENGER_HINTS: Record<Messenger, string> = {
+  whatsapp: 'QR в «Связанных устройствах». chatId: 79990000000@c.us',
+  telegram: 'QR или код из Telegram. chatId: номер или ID чата',
+  max: 'QR в приложении MAX, при необходимости — пароль 2FA',
+}
+
 interface Props {
   onInstanceSuccess: (
     credentials: GreenApiCredentials,
@@ -53,9 +59,7 @@ export function LoginScreen({
   const [mode, setMode] = useState<AccountMode>(initialMode)
   const [messenger, setMessenger] = useState<Messenger>(initialMessenger ?? DEFAULT_MESSENGER)
   const [label, setLabel] = useState('')
-  const [idInstance, setIdInstance] = useState(() =>
-    demoShowErrors ? '1101823456' : '',
-  )
+  const [idInstance, setIdInstance] = useState(() => (demoShowErrors ? '1101823456' : ''))
   const [apiTokenInstance, setApiTokenInstance] = useState(() =>
     demoShowErrors ? 'demo-wrong-token' : '',
   )
@@ -67,9 +71,7 @@ export function LoginScreen({
   const [helpOpen, setHelpOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>(() =>
-    demoShowErrors
-      ? mapLoginError(new GreenApiError('Unauthorized', 401))
-      : emptyFieldErrors,
+    demoShowErrors ? mapLoginError(new GreenApiError('Unauthorized', 401)) : emptyFieldErrors,
   )
   const [partnerBanner, setPartnerBanner] = useState<string | null>(null)
 
@@ -135,8 +137,7 @@ export function LoginScreen({
     }
   }
 
-  const inputClass = (hasError: boolean) =>
-    `${styles.input} ${hasError ? styles.inputError : ''}`
+  const inputClass = (hasError: boolean) => `${styles.input} ${hasError ? styles.inputError : ''}`
 
   return (
     <div className={styles.page} data-ui="login-screen">
@@ -146,32 +147,28 @@ export function LoginScreen({
       <TopNavBar appNav={{ onRegister: onGoRegister, active: 'login' }} />
       <main className={styles.main}>
         <div className={styles.card}>
-          <div className={styles.brandBlock}>
-            <div className={styles.badge}>
-              <Icon name="forum" filled size="sm" />
-              GREEN-API · MAX / WhatsApp / Telegram
-            </div>
+          {onCancel && (
+            <button
+              type="button"
+              className={styles.backBtn}
+              data-cy="login-cancel"
+              onClick={onCancel}
+            >
+              <Icon name="arrow_back" size="sm" />
+              Инстансы
+            </button>
+          )}
+          <header className={styles.header}>
             <h1 className={styles.title}>{onCancel ? 'Добавить инстанс' : 'Вход'}</h1>
-            {onCancel && (
-              <button
-                type="button"
-                className={styles.linkBtn}
-                data-cy="login-cancel"
-                onClick={onCancel}
-              >
-                ← К списку инстансов
-              </button>
-            )}
             <p className={styles.subtitle}>
-              Вход в личный кабинет — на{' '}
+              Ключи инстанса — в{' '}
               <a href="https://console.green-api.com" target="_blank" rel="noreferrer">
                 console.green-api.com
               </a>
-              . Здесь — подключение инстанса или Partner API.
             </p>
-          </div>
+          </header>
 
-          <div data-cy="account-mode-switcher">
+          <div data-cy="account-mode-switcher" className={styles.modeTabs}>
             <AccountModeSwitcher mode={mode} onChange={setMode} disabled={loading} />
           </div>
 
@@ -190,39 +187,13 @@ export function LoginScreen({
               )}
 
               <div className={styles.field} data-cy="messenger-switcher">
-                <label>Мессенджер</label>
+                <span className={styles.fieldLabel} id="messenger-label">
+                  Мессенджер
+                </span>
                 <MessengerSwitcher value={messenger} onChange={setMessenger} disabled={loading} />
-                {messenger === 'whatsapp' && (
-                  <p className={styles.hint}>
-                    WhatsApp — допустимый по ТЗ вариант, если MAX недоступен. Те же методы GREEN-API,
-                    chatId вида 79990000000@c.us.
-                  </p>
-                )}
-                {messenger === 'telegram' && (
-                  <p className={styles.hint}>
-                    Telegram — инстанс GREEN-API для Telegram (idInstance обычно 4100…). Авторизация
-                    по QR или коду из Telegram; chatId — номер телефона или числовой ID чата.
-                  </p>
-                )}
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="instanceLabel">Название (необязательно)</label>
-                <div className={styles.inputWrap}>
-                  <span className={styles.inputIcon}>
-                    <Icon name="label" size="sm" />
-                  </span>
-                  <input
-                    id="instanceLabel"
-                    data-cy="instance-label"
-                    className={inputClass(false)}
-                    value={label}
-                    onChange={(e) => setLabel(e.target.value)}
-                    placeholder="Например, Поддержка"
-                    autoComplete="off"
-                    disabled={loading}
-                  />
-                </div>
+                <p className={styles.hint} data-cy="messenger-hint">
+                  {MESSENGER_HINTS[messenger]}
+                </p>
               </div>
 
               <div className={styles.field}>
@@ -303,10 +274,29 @@ export function LoginScreen({
                     disabled={loading}
                   />
                 </div>
-                <p className={styles.hint}>
-                  Скопируйте из кабинета (например https://7107.api.greenapi.com). В dev прокси Vite
-                  обходит CORS автоматически.
-                </p>
+                <p className={styles.hint}>apiUrl из карточки инстанса в консоли</p>
+              </div>
+
+              <div className={styles.field}>
+                <div className={styles.labelRow}>
+                  <label htmlFor="instanceLabel">Название</label>
+                  <span className={styles.optional}>Необязательно</span>
+                </div>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}>
+                    <Icon name="label" size="sm" />
+                  </span>
+                  <input
+                    id="instanceLabel"
+                    data-cy="instance-label"
+                    className={inputClass(false)}
+                    value={label}
+                    onChange={(e) => setLabel(e.target.value)}
+                    placeholder="Например, Поддержка"
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               <label className={styles.checkboxRow}>
@@ -316,7 +306,7 @@ export function LoginScreen({
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
                 />
-                Запомнить ключи (localStorage). По умолчанию — только сессия вкладки.
+                Запомнить на этом устройстве
               </label>
 
               <button
@@ -325,7 +315,7 @@ export function LoginScreen({
                 className={styles.submit}
                 disabled={loading}
               >
-                {loading ? 'Проверка…' : 'Войти'}
+                {loading ? 'Проверка…' : onCancel ? 'Добавить' : 'Войти'}
                 {!loading && <Icon name="arrow_forward" size="sm" />}
               </button>
             </form>
@@ -374,15 +364,20 @@ export function LoginScreen({
 
               <div className={styles.field}>
                 <label htmlFor="partnerApiUrl">partnerApiUrl</label>
-                <input
-                  id="partnerApiUrl"
-                  className={styles.input}
-                  value={partnerApiUrl}
-                  onChange={(e) => setPartnerApiUrl(e.target.value)}
-                  placeholder={DEFAULT_API_URL}
-                  autoComplete="off"
-                  disabled={loading}
-                />
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}>
+                    <Icon name="dns" size="sm" />
+                  </span>
+                  <input
+                    id="partnerApiUrl"
+                    className={styles.input}
+                    value={partnerApiUrl}
+                    onChange={(e) => setPartnerApiUrl(e.target.value)}
+                    placeholder={DEFAULT_API_URL}
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               <label className={styles.checkboxRow}>
@@ -391,7 +386,7 @@ export function LoginScreen({
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
                 />
-                Запомнить partnerToken (только для тестов; в проде нужен backend-прокси).
+                Запомнить partnerToken (только для тестов)
               </label>
 
               <button type="submit" className={styles.submit} disabled={loading}>

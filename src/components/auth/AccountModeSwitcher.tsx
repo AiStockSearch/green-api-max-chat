@@ -20,7 +20,7 @@ export function AccountModeSwitcher({ mode, onChange, disabled }: Props) {
         disabled={disabled}
         onClick={() => onChange('instance')}
       >
-        Инстанс
+        По ключам инстанса
       </button>
       <button
         type="button"
@@ -31,7 +31,7 @@ export function AccountModeSwitcher({ mode, onChange, disabled }: Props) {
         disabled={disabled}
         onClick={() => onChange('partner')}
       >
-        Партнёр
+        Режим партнёра
       </button>
     </div>
   )

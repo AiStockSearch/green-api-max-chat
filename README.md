@@ -100,7 +100,7 @@ npm run test:e2e
 
 У GREEN-API **нет публичного API** регистрации/логина конечного пользователя в личный кабинет. Регистрация и вход на сайте — [console.green-api.com](https://console.green-api.com).
 
-В приложении два режима (переключатель на экране **«Вход»**):
+В приложении два режима (вкладки на экране **«Вход»**: «По ключам инстанса» и «Режим партнёра»):
 
 | Режим | Что нужно | API |
 |--------|-----------|-----|
@@ -111,7 +111,7 @@ npm run test:e2e
 
 1. Создайте инстанс MAX в кабинете.
 2. Скопируйте **idInstance**, **apiTokenInstance**, **apiUrl**.
-3. Войдите в приложении в режиме «Инстанс». При `notAuthorized` откроется шаг **QR** (метод `GET …/qr/…`, страница [qr.green-api.com](https://qr.green-api.com)) и опрос **getStateInstance**. При `pendingPassword` — **sendAuthorizationPassword** (2FA MAX).
+3. Войдите в приложении на вкладке «По ключам инстанса». При `notAuthorized` откроется шаг **QR** (метод `GET …/qr/…`, страница [qr.green-api.com](https://qr.green-api.com)) и опрос **getStateInstance**. При `pendingPassword` — **sendAuthorizationPassword** (2FA MAX).
 
 ### Partner API
 
@@ -255,6 +255,8 @@ _Добавьте URL после публикации, например: `https:
 | Все чаты (единый список) | docs/screenshots/17-all-chats.png |
 | Выйти из инстанса (Logout) | docs/screenshots/18-instance-logout-confirm.png |
 | После Logout → QR | docs/screenshots/19-after-logout.png |
+| Добавить инстанс | docs/screenshots/20-add-instance.png |
+| Добавить инстанс (мобильный) | docs/screenshots/21-add-instance-mobile.png |
 
 ## Структура проекта
 

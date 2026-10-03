@@ -211,7 +211,7 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
 <!-- 6 -->
 <section class="step" id="step-6">
   <h2><span class="num">6</span>Вход в приложение</h2>
-  <p>На экране «Вход» есть переключатель режима: <strong>Инстанс</strong> или <strong>Партнёр</strong>.</p>
+  <p>На экране «Вход» есть вкладки режима: <strong>«По ключам инстанса»</strong> (по умолчанию) и <strong>«Режим партнёра»</strong>.</p>
   <h3>Режим «Инстанс»</h3>
   <ol class="substeps">
     <li>Введите <code>idInstance</code> (например, <code>1101000001</code>) и <code>apiTokenInstance</code> (можно показать/скрыть кнопкой-глазом).</li>
@@ -219,7 +219,7 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
     <li>Нажмите «Войти». Приложение вызывает <code>getStateInstance</code>: при <code>authorized</code> открываются чаты, иначе — экран QR (шаг 3).</li>
   </ol>
   <h3>Мессенджер: WhatsApp, Telegram или MAX</h3>
-  <p>Над полем idInstance — переключатель «Мессенджер». По умолчанию <strong>MAX</strong>. Для инстанса WhatsApp выберите <strong>WhatsApp</strong>: выбор сохраняется вместе с ключами, а заголовки, подсказки, формат chatId, ссылка на QR и разбор уведомлений переключаются на WhatsApp. В Partner API мессенджер берётся из <code>typeInstance</code> инстанса.</p>
+  <p>Первое поле формы — «Мессенджер»: три карточки в ряд (WhatsApp, Telegram, MAX) с иконками, выбранная выделена рамкой и галочкой; под ними — однострочная подсказка для выбранного мессенджера. По умолчанию <strong>MAX</strong>. Для инстанса WhatsApp выберите <strong>WhatsApp</strong>: выбор сохраняется вместе с ключами, а заголовки, подсказки, формат chatId, ссылка на QR и разбор уведомлений переключаются на WhatsApp. В Partner API мессенджер берётся из <code>typeInstance</code> инстанса.</p>
   <p><strong>Telegram</strong> (инстанс GREEN-API для Telegram, idInstance обычно <code>4100…</code>): QR открывается на <code>qr.green-api.com/waInstance{id}/{token}/telegram</code> — в Telegram «Настройки → Устройства → Подключить устройство». Если включён облачный пароль, после QR его просят ввести (<code>sendAuthorizationPassword</code>). Альтернатива QR — <strong>вход по коду</strong>: на экране авторизации нажмите «Войти по коду», введите номер (<code>startAuthorization</code>), затем код из Telegram и при необходимости пароль (<code>sendAuthorizationCode</code>).</p>
   <p>Необязательное поле <strong>«Название»</strong> задаёт подпись инстанса на экране «Инстансы» (например, «Поддержка»).</p>
   <h3>Режим «Партнёр»</h3>
@@ -230,9 +230,9 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
   </ol>
   <div class="warn">Хранение <code>partnerToken</code> в браузерном SPA допустимо только для демо и тестов. В продакшене Partner API и секреты должны идти через backend.</div>
   <h3>«Запомнить»</h3>
-  <p>По умолчанию ключи хранятся в <code>sessionStorage</code> (до закрытия вкладки). Чекбокс «Запомнить ключи» сохраняет их в <code>localStorage</code>. Форма поддерживает менеджер паролей (<code>autocomplete="username"</code>/<code>current-password</code>, Credential Management API, если браузер его поддерживает). Выход — через модалку подтверждения.</p>
+  <p>По умолчанию ключи хранятся в <code>sessionStorage</code> (до закрытия вкладки). Чекбокс «Запомнить на этом устройстве» сохраняет их в <code>localStorage</code>. Форма поддерживает менеджер паролей (<code>autocomplete="username"</code>/<code>current-password</code>, Credential Management API, если браузер его поддерживает). Выход — через модалку подтверждения.</p>
   <div class="grid2">
-    <figure><img src="screenshots/01-login.png" alt="Экран входа" loading="lazy"><figcaption>Рис. 5. Экран «Вход», режим «Инстанс».</figcaption></figure>
+    <figure><img src="screenshots/01-login.png" alt="Экран входа" loading="lazy"><figcaption>Рис. 5. Экран «Вход», вкладка «По ключам инстанса».</figcaption></figure>
     <figure><img src="screenshots/13-partner-instances.png" alt="Инстансы партнёра" loading="lazy"><figcaption>Рис. 6. Режим «Партнёр»: список инстансов (<code>?demo=partner</code>).</figcaption></figure>
   </div>
   <figure><img src="screenshots/09-logout-confirm.png" alt="Подтверждение выхода" loading="lazy"><figcaption>Рис. 7. Подтверждение выхода из инстанса (<code>?demo=logout</code>).</figcaption></figure>
@@ -277,7 +277,7 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
   <h2><span class="num">7a</span>Несколько инстансов: WhatsApp + Telegram + MAX</h2>
   <p>Если подключено больше одного инстанса, приложение открывается на экране <strong>«Инстансы»</strong> — карточка на каждый инстанс с бейджем мессенджера (WA / TG / MAX), названием, idInstance и статусом из <code>getStateInstance</code> (Авторизован / Неавторизован / Ошибка).</p>
   <ol class="substeps">
-    <li><strong>Добавить инстанс</strong> — выберите WhatsApp, Telegram или MAX на карточке «Добавить инстанс» и введите ключи. Ключ профиля — <code>messenger:idInstance</code>; с «Запомнить» профиль хранится в <code>localStorage</code>, без — в <code>sessionStorage</code>. Кнопка «← К списку инстансов» возвращает назад без добавления.</li>
+    <li><strong>Добавить инстанс</strong> — выберите WhatsApp, Telegram или MAX на карточке «Добавить инстанс» и введите ключи. Ключ профиля — <code>messenger:idInstance</code>; с «Запомнить» профиль хранится в <code>localStorage</code>, без — в <code>sessionStorage</code>. Ссылка «← Инстансы» в левом верхнем углу формы возвращает назад без добавления.</li>
     <li><strong>Открыть</strong> — чаты одного инстанса. <strong>Все чаты</strong> — единый список чатов всех инстансов с бейджем мессенджера у каждого чата; переключатель над списком («Все инстансы» / конкретный инстанс) фильтрует список. Ответ уходит через инстанс, которому принадлежит чат; при создании чата в режиме «Все» появляется выбор инстанса.</li>
     <li><strong>Выйти из инстанса</strong> — после подтверждения в модалке вызывается метод GREEN-API <code>Logout</code>: аккаунт отвязывается от инстанса, статус становится <code>notAuthorized</code>, и приложение предлагает «Авторизовать по QR». Профиль остаётся в приложении. То же действие доступно иконкой выхода в шапке чата, когда выбран конкретный инстанс.</li>
     <li><strong>Убрать из приложения</strong> — после подтверждения профиль и его локальные чаты и сообщения удаляются из браузера. Запросов к GREEN-API нет, инстанс в кабинете остаётся как был.</li>
@@ -286,6 +286,10 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
   <div class="grid2">
     <figure><img src="screenshots/16-instances-dashboard.png" alt="Экран Инстансы" loading="lazy"><figcaption>Рис. 7a. Экран «Инстансы» (<code>?demo=dashboard</code>).</figcaption></figure>
     <figure><img src="screenshots/17-all-chats.png" alt="Все чаты" loading="lazy"><figcaption>Рис. 7b. «Все чаты»: единый список с бейджами мессенджеров.</figcaption></figure>
+  </div>
+  <div class="grid2">
+    <figure><img src="screenshots/20-add-instance.png" alt="Добавить инстанс" loading="lazy"><figcaption>Рис. 7e. «Добавить инстанс»: выбор мессенджера карточками.</figcaption></figure>
+    <figure><img src="screenshots/21-add-instance-mobile.png" alt="Добавить инстанс — мобильный" loading="lazy"><figcaption>Рис. 7f. «Добавить инстанс» на мобильном (390 px).</figcaption></figure>
   </div>
   <div class="grid2">
     <figure><img src="screenshots/18-instance-logout-confirm.png" alt="Выйти из инстанса" loading="lazy"><figcaption>Рис. 7c. Подтверждение «Выйти из инстанса» (Logout).</figcaption></figure>

@@ -167,6 +167,12 @@ function App() {
       : {},
   )
 
+  // Новый экран — с начала страницы (иначе на мобильных остаётся прокрутка дашборда)
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) return
+    window.scrollTo(0, 0)
+  }, [route])
+
   const persistProfiles = useCallback(
     (next: InstanceProfile[]) => {
       if (!demo) saveProfiles(next)
