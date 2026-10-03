@@ -3,6 +3,8 @@
 ![CI](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/ci.yml/badge.svg)
 ![Deploy](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/deploy.yml/badge.svg)
 
+📘 **Пошаговое руководство (HTML):** [docs/guide.html](docs/guide.html) — инстанс MAX, QR-авторизация, запуск локально и в Docker, тесты, CI/CD, FAQ.
+
 Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
 
 ## Стек

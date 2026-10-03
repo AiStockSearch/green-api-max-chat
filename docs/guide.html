@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GREEN-API MAX Chat — пошаговое руководство</title>
+<style>
+  :root{
+    --primary:#0077ff; --primary-soft:#e8f2ff; --text:#1b1f24; --muted:#5b6672;
+    --bg:#f6f8fb; --card:#fff; --border:#e3e8ef; --code-bg:#0f172a; --code-text:#e2e8f0;
+    --warn:#fff7e6; --warn-border:#f5b041; --danger:#fdecec; --danger-border:#e5534b;
+    --ok:#eaf7ef; --ok-border:#2ea44f; --radius:12px; --sidebar:280px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font:16px/1.6 Inter,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--text);background:var(--bg)}
+  a{color:var(--primary);text-decoration:none} a:hover{text-decoration:underline}
+  code{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;background:var(--primary-soft);color:#0b4fa8;padding:.1em .35em;border-radius:6px;overflow-wrap:anywhere}
+  pre{background:var(--code-bg);color:var(--code-text);padding:14px 16px;border-radius:10px;overflow:auto;font-size:14px;line-height:1.5}
+  pre code{background:none;color:inherit;padding:0}
+  .layout{display:flex;min-height:100vh}
+  nav.sidebar{position:sticky;top:0;align-self:flex-start;width:var(--sidebar);flex:0 0 var(--sidebar);height:100vh;overflow:auto;background:var(--card);border-right:1px solid var(--border);padding:24px 18px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;margin-bottom:4px}
+  .brand .logo{width:32px;height:32px;border-radius:9px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:15px}
+  .brand-sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+  nav ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+  nav li{counter-increment:toc}
+  nav li a{display:flex;gap:10px;padding:7px 10px;border-radius:8px;color:var(--text);font-size:14.5px}
+  nav li a::before{content:counter(toc);flex:0 0 22px;height:22px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-size:12px;font-weight:700;display:grid;place-items:center}
+  nav li a:hover{background:var(--bg);text-decoration:none}
+  main{flex:1;min-width:0;padding:40px clamp(16px,5vw,64px) 80px;max-width:1040px}
+  header.hero{background:linear-gradient(135deg,#0077ff,#3a9bff);color:#fff;border-radius:18px;padding:32px;margin-bottom:32px}
+  header.hero h1{margin:0 0 8px;font-size:clamp(24px,4vw,34px);line-height:1.2}
+  header.hero p{margin:0;opacity:.92}
+  header.hero .badges{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+  header.hero .badges span{background:rgba(255,255,255,.18);padding:4px 10px;border-radius:999px;font-size:13px}
+  section.step{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px clamp(18px,3vw,32px);margin-bottom:24px;scroll-margin-top:16px}
+  section.step h2{display:flex;align-items:center;gap:12px;margin:0 0 14px;font-size:clamp(20px,2.6vw,25px);line-height:1.25}
+  section.step h2 .num{flex:0 0 38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:17px}
+  h3{font-size:17.5px;margin:22px 0 8px}
+  ol.substeps{padding-left:22px} ol.substeps li{margin:6px 0}
+  .note,.warn,.danger,.ok{border-left:4px solid;border-radius:8px;padding:12px 16px;margin:14px 0;font-size:15px}
+  .note{background:var(--primary-soft);border-color:var(--primary)}
+  .warn{background:var(--warn);border-color:var(--warn-border)}
+  .danger{background:var(--danger);border-color:var(--danger-border)}
+  .ok{background:var(--ok);border-color:var(--ok-border)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--bg);font-weight:600}
+  figure{margin:16px 0}
+  figure img{display:block;max-width:100%;height:auto;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 18px rgba(15,23,42,.08)}
+  figcaption{color:var(--muted);font-size:13.5px;margin-top:6px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .grid2 figure img.mobile{max-height:520px;width:auto;margin:0 auto}
+  details{border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:10px 0;background:#fcfdff}
+  details summary{cursor:pointer;font-weight:600}
+  footer{color:var(--muted);font-size:13px;text-align:center;margin-top:40px}
+  .menu-toggle{display:none}
+  @media (max-width:900px){
+    .layout{display:block}
+    nav.sidebar{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--border)}
+    nav.sidebar ol{display:none}
+    nav.sidebar.open ol{display:block}
+    .menu-toggle{display:inline-block;margin-top:4px;border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+    main{padding-top:24px}
+  }
+  @media print{nav.sidebar{display:none} section.step{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="toc" aria-label="Оглавление">
+  <div class="brand"><span class="logo">M</span>MAX Chat</div>
+  <p class="brand-sub">GREEN-API · React + TS + Vite</p>
+  <button class="menu-toggle" type="button" onclick="document.getElementById('toc').classList.toggle('open')">☰ Оглавление</button>
+  <ol>
+    <li><a href="#step-1">Что это за приложение</a></li>
+    <li><a href="#step-2">Создание инстанса MAX</a></li>
+    <li><a href="#step-3">Авторизация по QR</a></li>
+    <li><a href="#step-4">Локальный запуск</a></li>
+    <li><a href="#step-5">Запуск в Docker</a></li>
+    <li><a href="#step-6">Вход в приложение</a></li>
+    <li><a href="#step-7">Чат: отправка и приём</a></li>
+    <li><a href="#step-8">Ошибки и состояния</a></li>
+    <li><a href="#step-9">Тесты</a></li>
+    <li><a href="#step-10">CI/CD</a></li>
+    <li><a href="#step-11">Troubleshooting / FAQ</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <h1>GREEN-API MAX Chat — пошаговое руководство</h1>
+  <p>Веб-клиент для отправки и приёма текстовых сообщений в мессенджере MAX через GREEN-API. Тестовое задание (frontend) для компании «Грин-Апи».</p>
+  <div class="badges"><span>React 19</span><span>TypeScript</span><span>Vite</span><span>CSS Modules</span><span>Vitest</span><span>Cypress</span><span>Docker + nginx</span></div>
+</header>
+
+<div class="warn"><strong>Безопасность.</strong> Во всех примерах используются заглушки: <code>1101000001</code> для idInstance и <code>YOUR_API_TOKEN</code> для apiTokenInstance. Никогда не публикуйте реальные токены в репозитории, issue или скриншотах.</div>
+
+<!-- 1 -->
+<section class="step" id="step-1">
+  <h2><span class="num">1</span>Что это за приложение и что оно умеет</h2>
+  <p>Небольшое SPA на <strong>React + TypeScript (Vite)</strong>. Интерфейс в стиле <a href="https://web.max.ru" target="_blank" rel="noreferrer">web.max.ru</a>: список чатов слева, переписка с «пузырями» справа. Все запросы идут в HTTP API GREEN-API по схеме <code>{apiUrl}/waInstance{idInstance}/{method}/{apiTokenInstance}</code>.</p>
+  <ul>
+    <li>Вход по ключам инстанса (<code>idInstance</code>, <code>apiTokenInstance</code>, <code>apiUrl</code>) с проверкой <code>getStateInstance</code>.</li>
+    <li>Экран авторизации инстанса MAX по QR-коду (+ ввод пароля 2FA через <code>sendAuthorizationPassword</code>).</li>
+    <li>Режим «Партнёр» (Partner API): список инстансов, создание и удаление инстанса.</li>
+    <li>Создание чата по номеру телефона или chatId, отправка текста (<code>sendMessage</code>).</li>
+    <li>Приём входящих текстовых сообщений опросом очереди <code>receiveNotification</code> / <code>deleteNotification</code>.</li>
+    <li>Состояния ошибок: неверные ключи, неавторизованный инстанс, сеть/CORS, повтор неотправленного сообщения.</li>
+    <li>Адаптивная вёрстка (мобильный список и чат), демо-режим без инстанса (<code>?demo=…</code>).</li>
+  </ul>
+  <div class="note"><strong>Ограничения:</strong> только текст (медиа и статусы доставки не отображаются); чаты и сообщения хранятся локально в браузере; один активный опрос на вкладку — при нескольких вкладках возможны конфликты очереди.</div>
+  <figure><img src="screenshots/04-active-chat.png" alt="Активный чат" loading="lazy"><figcaption>Рис. 1. Активный чат (демо-данные, <code>?demo=active</code>).</figcaption></figure>
+</section>
+
+<!-- 2 -->
+<section class="step" id="step-2">
+  <h2><span class="num">2</span>Создание инстанса MAX в консоли GREEN-API</h2>
+  <ol class="substeps">
+    <li>Зарегистрируйтесь или войдите в личный кабинет <a href="https://console.green-api.com" target="_blank" rel="noreferrer">console.green-api.com</a>. Публичного API для регистрации конечного пользователя нет — только через сайт (в приложении это поясняет экран «Регистрация»).</li>
+    <li>Нажмите «Создать инстанс» и выберите мессенджер <strong>MAX</strong>.</li>
+    <li>Выберите тариф. Бесплатный инстанс <em>Developer</em> подходит для проверки, но <strong>может работать с ограничениями</strong> (лимиты на количество запросов/чатов).</li>
+    <li>Откройте карточку инстанса и скопируйте три значения:
+      <table>
+        <tr><th>Поле</th><th>Пример (заглушка)</th><th>Где используется</th></tr>
+        <tr><td><code>idInstance</code></td><td><code>1101000001</code></td><td>Поле «idInstance» на экране входа</td></tr>
+        <tr><td><code>apiUrl</code></td><td><code>https://1101.api.green-api.com</code></td><td>Поле «API URL» (по умолчанию <code>https://api.green-api.com</code>)</td></tr>
+        <tr><td><code>apiTokenInstance</code></td><td><code>YOUR_API_TOKEN</code></td><td>Поле «apiTokenInstance»</td></tr>
+      </table>
+    </li>
+    <li>Для приёма сообщений в настройках инстанса <strong>очистите webhookUrl</strong> (если задан свой webhook, очередь HTTP API недоступна) и <strong>включите уведомления о входящих сообщениях</strong>.</li>
+  </ol>
+  <div class="danger"><strong>Токен утёк?</strong> Если <code>apiTokenInstance</code> попал в git, чат, лог CI или скриншот — сразу <strong>перевыпустите (rotate) токен</strong> в карточке инстанса в консоли и обновите его в <code>cypress.env.json</code> и секретах GitHub.</div>
+  <h3>Альтернатива: создание через Partner API</h3>
+  <p>Если у вас есть ключ партнёра (<code>partnerToken</code> вида <code>gac.…</code>, выдаётся через <a href="mailto:support@green-api.com">support@green-api.com</a>), инстанс можно создать прямо в приложении (режим «Партнёр», см. шаг 6). Параметра «только MAX» в <code>createInstance</code> в документации нет — тип инстанса определяется на стороне GREEN-API.</p>
+  <div class="grid2">
+    <figure><img src="screenshots/12-register.png" alt="Экран Регистрация" loading="lazy"><figcaption>Рис. 2. Экран «Регистрация» со ссылкой на консоль (<code>?demo=register</code>).</figcaption></figure>
+    <figure><img src="screenshots/14-create-instance.png" alt="Partner: создание инстанса" loading="lazy"><figcaption>Рис. 3. Partner API: форма createInstance (<code>?demo=create-instance</code>).</figcaption></figure>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="step" id="step-3">
+  <h2><span class="num">3</span>Авторизация инстанса по QR-коду</h2>
+  <p>Новый инстанс находится в состоянии <code>notAuthorized</code>. Его нужно привязать к аккаунту MAX.</p>
+  <ol class="substeps">
+    <li><strong>Вариант А — в приложении.</strong> Войдите с ключами инстанса (шаг 6). Если <code>getStateInstance</code> вернёт <code>notAuthorized</code> или <code>starting</code>, откроется экран «Авторизация инстанса MAX» с QR-кодом (метод <code>qr</code>). QR обновляется каждые 5 с, состояние опрашивается каждые 3 с. Есть ссылка «Открыть qr.green-api.com».</li>
+    <li><strong>Вариант Б — в консоли.</strong> Откройте карточку инстанса на console.green-api.com и отсканируйте QR там.</li>
+    <li>В мобильном приложении <strong>MAX</strong> откройте сканер QR (раздел подключения устройств) и отсканируйте код.</li>
+    <li>Если на аккаунте включена двухфакторная защита, состояние станет <code>pendingPassword</code> — введите пароль в поле «Пароль 2FA MAX» (метод <code>sendAuthorizationPassword</code>).</li>
+    <li>Дождитесь статуса <strong>«Авторизован»</strong> (<code>authorized</code>) — приложение само перейдёт к чатам.</li>
+  </ol>
+  <div class="note">Методы <code>getAuthorizationCode</code> / вход по коду из SMS для MAX не поддерживаются — только QR (+ 2FA-пароль). Состояние <code>blocked</code> отображается как «Аккаунт MAX заблокирован».</div>
+  <figure><img src="screenshots/15-instance-qr-auth.png" alt="Экран авторизации по QR" loading="lazy"><figcaption>Рис. 4. Экран авторизации инстанса MAX по QR (<code>?demo=instance-qr</code>).</figcaption></figure>
+</section>
+
+<!-- 4 -->
+<section class="step" id="step-4">
+  <h2><span class="num">4</span>Локальный запуск</h2>
+  <h3>Требования</h3>
+  <ul>
+    <li><strong>Node.js:</strong> файла <code>.nvmrc</code> и поля <code>engines</code> в <code>package.json</code> нет. CI и Dockerfile используют <strong>Node 20</strong>; Vite 8 требует <code>^20.19</code> или <code>&gt;=22.12</code>, а Vitest 5 и Cypress 16 в своих <code>engines</code> заявляют <strong>Node 22+</strong>. Рекомендуется <strong>Node 22 LTS</strong> (минимум 20.19).</li>
+    <li>npm (идёт с Node), git. Для шага 5 — Docker с Compose.</li>
+  </ul>
+  <h3>Установка и запуск</h3>
+<pre><code>git clone https://github.com/AiStockSearch/green-api-max-chat.git
+cd green-api-max-chat
+npm ci
+npm run dev</code></pre>
+  <p>Dev-сервер стартует на <a href="http://127.0.0.1:43123">http://127.0.0.1:43123</a> (порт задан в <code>vite.config.ts</code>).</p>
+  <h3>Демо-режим без инстанса</h3>
+  <p>Откройте <code>http://127.0.0.1:43123/?demo=active</code> — интерфейс заполнится демо-чатами, реальные запросы к API не нужны. Другие значения <code>demo</code>:</p>
+  <table>
+    <tr><th><code>?demo=</code></th><th>Что показывает</th></tr>
+    <tr><td><code>empty</code>, <code>modal</code>, <code>active</code></td><td>Пустой layout, модалка «Новый чат», активный диалог</td></tr>
+    <tr><td><code>error</code></td><td>Экран входа с ошибкой ключей</td></tr>
+    <tr><td><code>unauthorized</code></td><td>Карточка «Инстанс не авторизован в MAX»</td></tr>
+    <tr><td><code>network</code></td><td>Баннер сети/CORS и неотправленное сообщение с «Повторить»</td></tr>
+    <tr><td><code>loading</code></td><td>Скелетоны и статус «отправляется»</td></tr>
+    <tr><td><code>mobile-list</code>, <code>mobile-chat</code></td><td>Мобильная вёрстка (≤768px)</td></tr>
+    <tr><td><code>logout</code></td><td>Модалка подтверждения выхода</td></tr>
+    <tr><td><code>register</code>, <code>partner</code>, <code>create-instance</code>, <code>instance-qr</code></td><td>Экраны аккаунта: регистрация, инстансы партнёра, createInstance, QR</td></tr>
+  </table>
+  <h3>Прокси Vite и CORS</h3>
+  <p>Браузер может блокировать прямые запросы к GREEN-API политикой CORS. В режиме <code>npm run dev</code> клиент автоматически переписывает URL на same-origin путь <code>/green-api-proxy/{host}/…</code>, а прокси Vite (<code>vite.config.ts</code>) пересылает запрос на <code>https://{host}/…</code>. Разрешены только хосты <code>*.api.green-api.com</code>, <code>*.api.greenapi.com</code>, <code>api.green-api.com</code>, <code>api.greenapi.com</code> (см. <code>src/api/devProxy.ts</code>).</p>
+  <div class="warn">Обычная статическая сборка (<code>npm run build</code> без <code>VITE_GREEN_API_SAME_ORIGIN_PROXY=true</code>) ходит в API напрямую — на Vercel/GitHub Pages возможны ошибки CORS. Для production используйте Docker (шаг 5) или свой backend-прокси.</div>
+</section>
+
+<!-- 5 -->
+<section class="step" id="step-5">
+  <h2><span class="num">5</span>Запуск в Docker</h2>
+  <ol class="substeps">
+    <li>Соберите и запустите:
+<pre><code>docker compose up --build</code></pre>
+    или без Compose:
+<pre><code>docker build -t green-api-max-chat:local .
+docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
+    <li>Откройте <a href="http://localhost:8080">http://localhost:8080</a> и введите ключи инстанса в интерфейсе.</li>
+    <li>Проверка здоровья: <code>curl http://localhost:8080/health</code> → <code>ok</code>. Compose и Dockerfile используют этот эндпоинт в <code>healthcheck</code>.</li>
+  </ol>
+  <p>Как устроен образ: multi-stage сборка — <code>node:20-alpine</code> собирает <code>dist/</code> с <code>VITE_GREEN_API_SAME_ORIGIN_PROXY=true</code>, затем <code>nginx:alpine</code> отдаёт статику (SPA fallback на <code>index.html</code>) и проксирует <code>/green-api-proxy/*</code> только на разрешённые хосты GREEN-API; остальное получает <code>403</code> (защита от open proxy). Конфиг — <code>docker/nginx.conf</code>.</p>
+  <div class="ok">Токены в образ <strong>не запекаются</strong>: в нём только статический <code>dist/</code>, ключи вводятся в браузере.</div>
+</section>
+
+<!-- 6 -->
+<section class="step" id="step-6">
+  <h2><span class="num">6</span>Вход в приложение</h2>
+  <p>На экране «Вход» есть переключатель режима: <strong>Инстанс</strong> или <strong>Партнёр</strong>.</p>
+  <h3>Режим «Инстанс»</h3>
+  <ol class="substeps">
+    <li>Введите <code>idInstance</code> (например, <code>1101000001</code>) и <code>apiTokenInstance</code> (можно показать/скрыть кнопкой-глазом).</li>
+    <li>Поле <strong>API URL</strong> необязательно (по умолчанию <code>https://api.green-api.com</code>), но лучше указать <code>apiUrl</code> из карточки инстанса.</li>
+    <li>Нажмите «Войти». Приложение вызывает <code>getStateInstance</code>: при <code>authorized</code> открываются чаты, иначе — экран QR (шаг 3).</li>
+  </ol>
+  <h3>Режим «Партнёр»</h3>
+  <ol class="substeps">
+    <li>Введите <code>partnerToken</code> (<code>gac.…</code>) и <code>partnerApiUrl</code>; нажмите «Продолжить» — выполняется <code>getInstances</code>.</li>
+    <li>В списке «Инстансы партнёра» выберите инстанс, создайте новый («Создать инстанс» → <code>createInstance</code>) или удалите (<code>deleteInstanceAccount</code>).</li>
+    <li>Выбранный инстанс проходит авторизацию по QR и открывается чат.</li>
+  </ol>
+  <div class="warn">Хранение <code>partnerToken</code> в браузерном SPA допустимо только для демо и тестов. В продакшене Partner API и секреты должны идти через backend.</div>
+  <h3>«Запомнить»</h3>
+  <p>По умолчанию ключи хранятся в <code>sessionStorage</code> (до закрытия вкладки). Чекбокс «Запомнить ключи» сохраняет их в <code>localStorage</code>. Форма поддерживает менеджер паролей (<code>autocomplete="username"</code>/<code>current-password</code>, Credential Management API, если браузер его поддерживает). Выход — через модалку подтверждения.</p>
+  <div class="grid2">
+    <figure><img src="screenshots/01-login.png" alt="Экран входа" loading="lazy"><figcaption>Рис. 5. Экран «Вход», режим «Инстанс».</figcaption></figure>
+    <figure><img src="screenshots/13-partner-instances.png" alt="Инстансы партнёра" loading="lazy"><figcaption>Рис. 6. Режим «Партнёр»: список инстансов (<code>?demo=partner</code>).</figcaption></figure>
+  </div>
+  <figure><img src="screenshots/09-logout-confirm.png" alt="Подтверждение выхода" loading="lazy"><figcaption>Рис. 7. Подтверждение выхода из инстанса (<code>?demo=logout</code>).</figcaption></figure>
+</section>
+
+<!-- 7 -->
+<section class="step" id="step-7">
+  <h2><span class="num">7</span>Создание чата, отправка и приём сообщений</h2>
+  <ol class="substeps">
+    <li>Нажмите «Новый чат» над списком чатов.</li>
+    <li>Введите номер телефона (например, <code>79990000000</code>) или готовый chatId и нажмите «Создать чат». Правила (<code>src/api/chatId.ts</code>):
+      <ul>
+        <li>строка с <code>@</code> или начинающаяся с <code>-</code> — используется как chatId без изменений;</li>
+        <li>5–9 цифр — числовой ID личного чата MAX;</li>
+        <li>10–15 цифр — номер телефона, превращается в <code>{цифры}@c.us</code>.</li>
+      </ul></li>
+    <li>Напишите текст и отправьте: <kbd>Enter</kbd> — отправка, <kbd>Shift</kbd>+<kbd>Enter</kbd> — новая строка. Используется <code>POST sendMessage</code>; при ошибке сообщение помечается как неотправленное с кнопкой «Повторить».</li>
+    <li>Ответ собеседника из MAX появится в чате автоматически.</li>
+  </ol>
+  <h3>Как работает приём (<code>src/hooks/useNotificationPolling.ts</code>)</h3>
+  <ol class="substeps">
+    <li>После входа в фоне крутится цикл: <code>GET receiveNotification</code> с таймаутом 5 с (long polling).</li>
+    <li>Если уведомление — <code>incomingMessageReceived</code> с <code>typeMessage = textMessage</code>, текст добавляется в чат с совпадающим chatId (<code>79990000000@c.us</code> и <code>79990000000</code> считаются одним чатом).</li>
+    <li>Любое полученное уведомление (включая прочие типы) подтверждается <code>DELETE deleteNotification/{receiptId}</code>, чтобы очередь не застревала.</li>
+    <li>При ошибке опроса показывается баннер и через 3 с выполняется повтор.</li>
+  </ol>
+  <div class="grid2">
+    <figure><img src="screenshots/02-empty-state.png" alt="Пустое состояние" loading="lazy"><figcaption>Рис. 8. Пустое состояние после входа.</figcaption></figure>
+    <figure><img src="screenshots/03-new-chat-modal.png" alt="Модалка Новый чат" loading="lazy"><figcaption>Рис. 9. Модалка «Новый чат».</figcaption></figure>
+  </div>
+  <div class="grid2">
+    <figure><img class="mobile" src="screenshots/10-mobile-chat-list.png" alt="Мобильный список чатов" loading="lazy"><figcaption>Рис. 10. Мобильный список чатов.</figcaption></figure>
+    <figure><img class="mobile" src="screenshots/11-mobile-active-chat.png" alt="Мобильный активный чат" loading="lazy"><figcaption>Рис. 11. Мобильный чат с кнопкой «назад».</figcaption></figure>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="step" id="step-8">
+  <h2><span class="num">8</span>Ошибки и состояния</h2>
+  <table>
+    <tr><th>Ситуация</th><th>Что видно в приложении</th><th>Что делать</th></tr>
+    <tr><td>Неверные ключи (HTTP 401/403)</td><td>Баннер «Неверный idInstance или apiTokenInstance…» и подсветка обоих полей</td><td>Сверьте ключи в консоли; при необходимости перевыпустите токен</td></tr>
+    <tr><td>Инстанс не авторизован (<code>stateInstance ≠ authorized</code>)</td><td>Карточка «Инстанс не авторизован в MAX» с шагами и кнопкой «Проверить снова»</td><td>Отсканируйте QR (шаг 3), перезагрузите инстанс в консоли</td></tr>
+    <tr><td>Сеть / CORS (<code>Failed to fetch</code>)</td><td>Баннер «Ошибка сети / CORS…» с обратным отсчётом повтора; сообщение с «Повторить»</td><td>Используйте dev-прокси или Docker, проверьте apiUrl</td></tr>
+    <tr><td>Загрузка</td><td>Скелетоны списка и переписки, статус «отправляется»</td><td>—</td></tr>
+    <tr><td>Неверный partnerToken (401)</td><td>Баннер «Неверный partnerToken…»</td><td>Запросите ключ у support@green-api.com</td></tr>
+  </table>
+  <div class="grid2">
+    <figure><img src="screenshots/05-login-error.png" alt="Ошибка входа" loading="lazy"><figcaption>Рис. 12. Неверные ключи (<code>?demo=error</code>).</figcaption></figure>
+    <figure><img src="screenshots/06-instance-unauthorized.png" alt="Инстанс не авторизован" loading="lazy"><figcaption>Рис. 13. Инстанс не авторизован (<code>?demo=unauthorized</code>).</figcaption></figure>
+    <figure><img src="screenshots/07-network-error.png" alt="Ошибка сети / CORS" loading="lazy"><figcaption>Рис. 14. Ошибка сети / CORS (<code>?demo=network</code>).</figcaption></figure>
+    <figure><img src="screenshots/08-loading.png" alt="Загрузка" loading="lazy"><figcaption>Рис. 15. Загрузка / скелетоны (<code>?demo=loading</code>).</figcaption></figure>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="step" id="step-9">
+  <h2><span class="num">9</span>Тесты</h2>
+  <h3>Unit-тесты (Vitest + jsdom)</h3>
+<pre><code>npm test          # vitest run
+npm run test:watch
+npm run lint      # ESLint
+npm run build     # tsc -b &amp;&amp; vite build</code></pre>
+  <p>Покрыт API-слой: <code>greenApi</code>, <code>notifications</code>, <code>chatId</code>, <code>errorMapping</code>, <code>devProxy</code>, <code>qrAuth</code>, <code>instanceState</code>, <code>instanceAuthPolling</code>, <code>partnerApi</code>, а также автозаполнение формы входа.</p>
+  <h3>E2E (Cypress)</h3>
+  <table>
+    <tr><th>Spec</th><th>Тип</th><th>Что проверяет</th></tr>
+    <tr><td><code>03-partner-register-demo</code></td><td>демо, без секретов</td><td>Маршруты <code>?demo=register</code>, <code>partner</code>, <code>instance-qr</code></td></tr>
+    <tr><td><code>01-api-credentials</code></td><td>live</td><td><code>getStateInstance</code> через dev-прокси</td></tr>
+    <tr><td><code>02-instance-login-auth</code></td><td>live</td><td>Вход в UI → экран QR или чат</td></tr>
+    <tr><td><code>04-instance-qr-live</code></td><td>live</td><td>Получение QR через прокси</td></tr>
+    <tr><td><code>05-live-send-receive</code></td><td>live</td><td>SendMessage (API + UI), receive/delete, опционально входящее в UI</td></tr>
+  </table>
+  <ol class="substeps">
+    <li>Скопируйте <code>cypress.env.example.json</code> → <code>cypress.env.json</code> (файл в <code>.gitignore</code>, не коммитится):
+<pre><code>{
+  "idInstance": "1101000001",
+  "apiTokenInstance": "YOUR_API_TOKEN",
+  "apiUrl": "https://1101.api.green-api.com",
+  "apiUrlDirect": "https://1101.api.green-api.com",
+  "chatId": "79990000000",
+  "incomingMarker": "",
+  "requireIncoming": false
+}</code></pre></li>
+    <li>Запустите <code>npm run test:e2e</code> — поднимется Vite на порту <code>43128</code> и прогонятся все specs. Если <code>cypress.env.json</code> нет, скрипт <code>scripts/ensure-cypress-env.mjs</code> создаст его из примера. Интерактивно: <code>npm run cy:open</code>.</li>
+    <li>Для <code>05</code> нужен <code>chatId</code> и <strong>авторизованный</strong> инстанс. Чтобы проверить входящее в UI, во время прогона (~2 мин) отправьте из MAX на инстанс текст <code>e2e-in-…</code> из лога Cypress, либо задайте <code>incomingMarker</code> и <code>requireIncoming: true</code>.</li>
+  </ol>
+  <h3>Секреты для CI</h3>
+  <p>В <em>Settings → Secrets and variables → Actions</em> репозитория: <code>GREEN_API_ID_INSTANCE</code>, <code>GREEN_API_TOKEN</code>, <code>GREEN_API_URL</code>, опционально <code>GREEN_API_CHAT_ID</code>. Workflow сам собирает из них <code>cypress.env.json</code>. Без первых трёх live-specs пропускаются.</p>
+</section>
+
+<!-- 10 -->
+<section class="step" id="step-10">
+  <h2><span class="num">10</span>CI/CD (GitHub Actions)</h2>
+  <h3><code>.github/workflows/ci.yml</code> — push и PR в <code>main</code></h3>
+  <ol class="substeps">
+    <li><strong>quality</strong>: Node 20, <code>npm ci</code> → <code>npm run lint</code> → <code>npm test</code> → <code>npm run build</code> → <code>docker build</code>.</li>
+    <li><strong>cypress-demo</strong> (после quality): Cypress <code>03-partner-register-demo</code> на dev-сервере, без секретов.</li>
+    <li><strong>cypress-live</strong> (после quality): если заданы <code>GREEN_API_ID_INSTANCE</code>, <code>GREEN_API_TOKEN</code>, <code>GREEN_API_URL</code> — пишет <code>cypress.env.json</code> и гоняет specs 01, 02, 04, 05; иначе шаг пропускается с сообщением в логе.</li>
+  </ol>
+  <h3><code>.github/workflows/deploy.yml</code> — push в <code>main</code>, теги <code>v*.*.*</code>, ручной запуск</h3>
+  <ol class="substeps">
+    <li><strong>build-image</strong>: собирает Docker-образ (с <code>VITE_GREEN_API_SAME_ORIGIN_PROXY=true</code>) и пушит в GHCR <code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;</code> с тегами ветки, semver и sha. Пример: <code>docker pull ghcr.io/aistocksearch/green-api-max-chat:main</code>.</li>
+    <li><strong>pages-static / pages-deploy</strong>: публикация статики на GitHub Pages — <strong>только вручную</strong> (<code>workflow_dispatch</code> с <code>publish_pages=true</code>), сборка с <code>GITHUB_PAGES=true</code>. Без nginx-прокси, поэтому возможны CORS-ошибки; по умолчанию Pages не используется.</li>
+  </ol>
+  <p><code>deploy-pages.yml</code> устарел и ничего не делает (заглушка с ручным запуском).</p>
+</section>
+
+<!-- 11 -->
+<section class="step" id="step-11">
+  <h2><span class="num">11</span>Troubleshooting / FAQ</h2>
+  <details><summary>«Неверный idInstance или apiTokenInstance», хотя ключи верные</summary>
+    <p>Проверьте, что нет пробелов, и что API URL соответствует карточке инстанса (например, <code>https://1101.api.green-api.com</code>). Если токен перевыпускали — используйте новый.</p></details>
+  <details><summary>«Ошибка сети / CORS: … Failed to fetch»</summary>
+    <p>Запускайте через <code>npm run dev</code> (прокси Vite) или Docker (nginx). Статический хостинг без прокси упирается в CORS. Также проверьте, что хост apiUrl входит в allowlist (<code>*.api.green-api.com</code>, <code>*.api.greenapi.com</code>).</p></details>
+  <details><summary>Сообщения отправляются, но ответы не приходят</summary>
+    <p>В настройках инстанса очистите <code>webhookUrl</code> и включите уведомления о входящих сообщениях. Закройте другие вкладки приложения — несколько опросов одной очереди конфликтуют. Отображаются только текстовые сообщения.</p></details>
+  <details><summary>Ответ пришёл, но в другом/новом чате не виден</summary>
+    <p>Входящее показывается в чате с совпадающим chatId. Для MAX собеседник может прийти с числовым ID — создайте чат с этим ID.</p></details>
+  <details><summary>Экран QR не исчезает</summary>
+    <p>Сканируйте код в мобильном приложении MAX; QR обновляется каждые 5 с — используйте актуальный. Если требуется пароль 2FA — введите его. При <code>blocked</code> — разберитесь с аккаунтом MAX; при необходимости перезагрузите инстанс в консоли.</p></details>
+  <details><summary>Developer-инстанс ведёт себя ограниченно</summary>
+    <p>Бесплатный тариф имеет лимиты. Для полноценной проверки используйте платный инстанс или учитывайте ограничения.</p></details>
+  <details><summary>Live Cypress пропущен в CI</summary>
+    <p>Не заданы секреты <code>GREEN_API_ID_INSTANCE</code>, <code>GREEN_API_TOKEN</code>, <code>GREEN_API_URL</code>. Это нормально: демо-spec и остальные проверки выполняются.</p></details>
+  <details><summary><code>npm ci</code> ругается на engines / не стартует Cypress</summary>
+    <p>Обновите Node до 22 LTS (Vitest 5 и Cypress 16 заявляют Node 22+).</p></details>
+  <details><summary>Порт 43123 / 43128 / 8080 занят</summary>
+    <p>Dev: <code>npm run dev -- --port 5173</code>. Docker: измените маппинг, например <code>-p 8081:8080</code>.</p></details>
+  <details><summary>Как переснять скриншоты?</summary>
+    <p><code>npm run screenshots</code> (сборка + <code>scripts/capture-screenshots.mjs</code>, Playwright, демо-данные).</p></details>
+</section>
+
+<footer>GREEN-API MAX Chat · учебный проект для тестового задания GREEN-API · <a href="https://github.com/AiStockSearch/green-api-max-chat">GitHub</a></footer>
+</main>
+</div>
+</body>
+</html>
