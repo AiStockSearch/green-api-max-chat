@@ -1,16 +1,19 @@
 /**
  * Мессенджер инстанса GREEN-API. По ТЗ основной — MAX; при недоступности MAX
- * допускается WhatsApp. Формат URL методов одинаковый: {apiUrl}/waInstance{id}/{method}/{token}.
+ * допускаются WhatsApp или Telegram. Формат URL методов одинаковый:
+ * {apiUrl}/waInstance{id}/{method}/{token}.
  */
-export type Messenger = 'max' | 'whatsapp'
+export type Messenger = 'max' | 'whatsapp' | 'telegram'
 
 export const DEFAULT_MESSENGER: Messenger = 'max'
 
-export const MESSENGERS: readonly Messenger[] = ['max', 'whatsapp'] as const
+/** Порядок в переключателе: WhatsApp / Telegram / MAX. */
+export const MESSENGERS: readonly Messenger[] = ['whatsapp', 'telegram', 'max'] as const
 
 export const MESSENGER_LABELS: Record<Messenger, string> = {
   max: 'MAX',
   whatsapp: 'WhatsApp',
+  telegram: 'Telegram',
 }
 
 export function parseMessenger(raw: unknown): Messenger {
@@ -20,6 +23,9 @@ export function parseMessenger(raw: unknown): Messenger {
   const v = raw.trim().toLowerCase()
   if (v === 'whatsapp' || v === 'wa') {
     return 'whatsapp'
+  }
+  if (v === 'telegram' || v === 'tg') {
+    return 'telegram'
   }
   return DEFAULT_MESSENGER
 }

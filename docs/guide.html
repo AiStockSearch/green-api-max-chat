@@ -81,6 +81,7 @@
     <li><a href="#step-5">Запуск в Docker</a></li>
     <li><a href="#step-6">Вход в приложение</a></li>
     <li><a href="#step-7">Чат: отправка и приём</a></li>
+    <li><a href="#step-7a">Несколько инстансов</a></li>
     <li><a href="#step-8">Ошибки и состояния</a></li>
     <li><a href="#step-9">Тесты</a></li>
     <li><a href="#step-10">CI/CD</a></li>
@@ -109,9 +110,11 @@
     <li>Приём входящих текстовых сообщений опросом очереди <code>receiveNotification</code> / <code>deleteNotification</code>.</li>
     <li>Состояния ошибок: неверные ключи, неавторизованный инстанс, сеть/CORS, повтор неотправленного сообщения.</li>
     <li>Адаптивная вёрстка (мобильный список и чат), демо-режим без инстанса (<code>?demo=…</code>).</li>
-    <li><strong>Режим WhatsApp</strong> — ТЗ разрешает WhatsApp или Telegram, если MAX недоступен. Переключатель «Мессенджер: MAX / WhatsApp» на экране входа (по умолчанию MAX).</li>
+    <li><strong>Режим WhatsApp</strong> — ТЗ разрешает WhatsApp или Telegram, если MAX недоступен. Переключатель «Мессенджер: WhatsApp / Telegram / MAX» на экране входа (по умолчанию MAX).</li>
+    <li><strong>Режим Telegram</strong> — QR, облачный пароль 2FA и вход по коду из Telegram; chatId — ID чата или номер.</li>
+    <li><strong>Несколько инстансов</strong> — экран «Инстансы», единый список чатов с бейджами мессенджеров, параллельный опрос очередей, «Выйти из инстанса» (Logout) и «Убрать из приложения» (шаг 7a).</li>
   </ul>
-  <div class="note"><strong>Ограничения:</strong> только текст (медиа и статусы доставки не отображаются); чаты и сообщения хранятся локально в браузере; один активный опрос на вкладку — при нескольких вкладках возможны конфликты очереди.</div>
+  <div class="note"><strong>Ограничения:</strong> только текст (медиа и статусы доставки не отображаются); чаты и сообщения хранятся локально в браузере; один опрос на инстанс во вкладке — если открыть один инстанс в нескольких вкладках, возможны конфликты очереди.</div>
   <figure><img src="screenshots/04-active-chat.png" alt="Активный чат" loading="lazy"><figcaption>Рис. 1. Активный чат (демо-данные, <code>?demo=active</code>).</figcaption></figure>
 </section>
 
@@ -215,8 +218,10 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
     <li>Поле <strong>API URL</strong> необязательно (по умолчанию <code>https://api.green-api.com</code>), но лучше указать <code>apiUrl</code> из карточки инстанса.</li>
     <li>Нажмите «Войти». Приложение вызывает <code>getStateInstance</code>: при <code>authorized</code> открываются чаты, иначе — экран QR (шаг 3).</li>
   </ol>
-  <h3>Мессенджер: MAX или WhatsApp</h3>
+  <h3>Мессенджер: WhatsApp, Telegram или MAX</h3>
   <p>Над полем idInstance — переключатель «Мессенджер». По умолчанию <strong>MAX</strong>. Для инстанса WhatsApp выберите <strong>WhatsApp</strong>: выбор сохраняется вместе с ключами, а заголовки, подсказки, формат chatId, ссылка на QR и разбор уведомлений переключаются на WhatsApp. В Partner API мессенджер берётся из <code>typeInstance</code> инстанса.</p>
+  <p><strong>Telegram</strong> (инстанс GREEN-API для Telegram, idInstance обычно <code>4100…</code>): QR открывается на <code>qr.green-api.com/waInstance{id}/{token}/telegram</code> — в Telegram «Настройки → Устройства → Подключить устройство». Если включён облачный пароль, после QR его просят ввести (<code>sendAuthorizationPassword</code>). Альтернатива QR — <strong>вход по коду</strong>: на экране авторизации нажмите «Войти по коду», введите номер (<code>startAuthorization</code>), затем код из Telegram и при необходимости пароль (<code>sendAuthorizationCode</code>).</p>
+  <p>Необязательное поле <strong>«Название»</strong> задаёт подпись инстанса на экране «Инстансы» (например, «Поддержка»).</p>
   <h3>Режим «Партнёр»</h3>
   <ol class="substeps">
     <li>Введите <code>partnerToken</code> (<code>gac.…</code>) и <code>partnerApiUrl</code>; нажмите «Продолжить» — выполняется <code>getInstances</code>.</li>
@@ -244,6 +249,7 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
         <li>5–9 цифр — числовой ID личного чата MAX;</li>
         <li>10–15 цифр — номер телефона, превращается в <code>{цифры}@c.us</code>.</li>
       </ul>
+      В режиме <strong>Telegram</strong> (<code>src/api/telegram.ts</code>): только цифры — ID личного чата (<code>10000000</code>), <code>-100…</code> — группа, номер с <code>+</code> или скобками (<code>+7 999 000-00-00</code>) и <code>79990000000@c.us</code> — чат по номеру. Ответ на чат, созданный по номеру, попадает в тот же диалог по <code>senderPhoneNumber</code> из уведомления.<br>
       В режиме <strong>WhatsApp</strong> (<code>src/api/whatsapp.ts</code>): номер → <code>{цифры}@c.us</code>, допускаются готовые <code>…@c.us</code>, <code>…@g.us</code> (группа) и <code>…@lid</code>; короткие числовые ID, как в MAX, не принимаются. Перед созданием чата вызывается <code>checkWhatsapp</code>: если номера нет в WhatsApp — ошибка, а если API вернул lid (<code>…@lid</code>), он сохраняется как алиас чата, и ответы с lid попадают в тот же диалог.</li>
     <li>Напишите текст и отправьте: <kbd>Enter</kbd> — отправка, <kbd>Shift</kbd>+<kbd>Enter</kbd> — новая строка. Используется <code>POST sendMessage</code>; при ошибке сообщение помечается как неотправленное с кнопкой «Повторить».</li>
     <li>Ответ собеседника из MAX появится в чате автоматически.</li>
@@ -263,6 +269,27 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
   <div class="grid2">
     <figure><img class="mobile" src="screenshots/10-mobile-chat-list.png" alt="Мобильный список чатов" loading="lazy"><figcaption>Рис. 10. Мобильный список чатов.</figcaption></figure>
     <figure><img class="mobile" src="screenshots/11-mobile-active-chat.png" alt="Мобильный активный чат" loading="lazy"><figcaption>Рис. 11. Мобильный чат с кнопкой «назад».</figcaption></figure>
+  </div>
+</section>
+
+<!-- 7a -->
+<section class="step" id="step-7a">
+  <h2><span class="num">7a</span>Несколько инстансов: WhatsApp + Telegram + MAX</h2>
+  <p>Если подключено больше одного инстанса, приложение открывается на экране <strong>«Инстансы»</strong> — карточка на каждый инстанс с бейджем мессенджера (WA / TG / MAX), названием, idInstance и статусом из <code>getStateInstance</code> (Авторизован / Неавторизован / Ошибка).</p>
+  <ol class="substeps">
+    <li><strong>Добавить инстанс</strong> — выберите WhatsApp, Telegram или MAX на карточке «Добавить инстанс» и введите ключи. Ключ профиля — <code>messenger:idInstance</code>; с «Запомнить» профиль хранится в <code>localStorage</code>, без — в <code>sessionStorage</code>. Кнопка «← К списку инстансов» возвращает назад без добавления.</li>
+    <li><strong>Открыть</strong> — чаты одного инстанса. <strong>Все чаты</strong> — единый список чатов всех инстансов с бейджем мессенджера у каждого чата; переключатель над списком («Все инстансы» / конкретный инстанс) фильтрует список. Ответ уходит через инстанс, которому принадлежит чат; при создании чата в режиме «Все» появляется выбор инстанса.</li>
+    <li><strong>Выйти из инстанса</strong> — после подтверждения в модалке вызывается метод GREEN-API <code>Logout</code>: аккаунт отвязывается от инстанса, статус становится <code>notAuthorized</code>, и приложение предлагает «Авторизовать по QR». Профиль остаётся в приложении. То же действие доступно иконкой выхода в шапке чата, когда выбран конкретный инстанс.</li>
+    <li><strong>Убрать из приложения</strong> — после подтверждения профиль и его локальные чаты и сообщения удаляются из браузера. Запросов к GREEN-API нет, инстанс в кабинете остаётся как был.</li>
+  </ol>
+  <p>Входящие принимаются <strong>параллельно</strong>: для каждого авторизованного инстанса работает свой цикл <code>receiveNotification</code> → <code>deleteNotification</code>, сообщения попадают в чаты своего инстанса (дубли по <code>idMessage</code> отбрасываются). Демо: <code>?demo=dashboard</code>.</p>
+  <div class="grid2">
+    <figure><img src="screenshots/16-instances-dashboard.png" alt="Экран Инстансы" loading="lazy"><figcaption>Рис. 7a. Экран «Инстансы» (<code>?demo=dashboard</code>).</figcaption></figure>
+    <figure><img src="screenshots/17-all-chats.png" alt="Все чаты" loading="lazy"><figcaption>Рис. 7b. «Все чаты»: единый список с бейджами мессенджеров.</figcaption></figure>
+  </div>
+  <div class="grid2">
+    <figure><img src="screenshots/18-instance-logout-confirm.png" alt="Выйти из инстанса" loading="lazy"><figcaption>Рис. 7c. Подтверждение «Выйти из инстанса» (Logout).</figcaption></figure>
+    <figure><img src="screenshots/19-after-logout.png" alt="После Logout" loading="lazy"><figcaption>Рис. 7d. После Logout: статус «Неавторизован», предложение авторизоваться по QR.</figcaption></figure>
   </div>
 </section>
 

@@ -23,11 +23,16 @@ interface Props {
     credentials: GreenApiCredentials,
     remember: boolean,
     needsAuth: boolean,
+    label?: string,
   ) => void
   onPartnerSuccess: (partner: PartnerCredentials, remember: boolean) => void
   onGoRegister: () => void
   initialMode?: AccountMode
   demoShowErrors?: boolean
+  /** Предвыбранный мессенджер (при «Добавить инстанс») */
+  initialMessenger?: Messenger
+  /** Вернуться к списку инстансов */
+  onCancel?: () => void
 }
 
 const emptyFieldErrors: LoginFieldErrors = {
@@ -42,9 +47,12 @@ export function LoginScreen({
   onGoRegister,
   initialMode = 'instance',
   demoShowErrors,
+  initialMessenger,
+  onCancel,
 }: Props) {
   const [mode, setMode] = useState<AccountMode>(initialMode)
-  const [messenger, setMessenger] = useState<Messenger>(DEFAULT_MESSENGER)
+  const [messenger, setMessenger] = useState<Messenger>(initialMessenger ?? DEFAULT_MESSENGER)
+  const [label, setLabel] = useState('')
   const [idInstance, setIdInstance] = useState(() =>
     demoShowErrors ? '1101823456' : '',
   )
@@ -92,7 +100,7 @@ export function LoginScreen({
         password: credentials.apiTokenInstance,
         name: `GREEN-API ${MESSENGER_LABELS[messenger]} · инстанс`,
       })
-      onInstanceSuccess(credentials, remember, needsAuth)
+      onInstanceSuccess(credentials, remember, needsAuth, label.trim() || undefined)
     } catch (err) {
       setFieldErrors(mapLoginError(err))
     } finally {
@@ -141,9 +149,19 @@ export function LoginScreen({
           <div className={styles.brandBlock}>
             <div className={styles.badge}>
               <Icon name="forum" filled size="sm" />
-              GREEN-API MAX
+              GREEN-API · MAX / WhatsApp / Telegram
             </div>
-            <h1 className={styles.title}>Вход</h1>
+            <h1 className={styles.title}>{onCancel ? 'Добавить инстанс' : 'Вход'}</h1>
+            {onCancel && (
+              <button
+                type="button"
+                className={styles.linkBtn}
+                data-cy="login-cancel"
+                onClick={onCancel}
+              >
+                ← К списку инстансов
+              </button>
+            )}
             <p className={styles.subtitle}>
               Вход в личный кабинет — на{' '}
               <a href="https://console.green-api.com" target="_blank" rel="noreferrer">
@@ -180,6 +198,31 @@ export function LoginScreen({
                     chatId вида 79990000000@c.us.
                   </p>
                 )}
+                {messenger === 'telegram' && (
+                  <p className={styles.hint}>
+                    Telegram — инстанс GREEN-API для Telegram (idInstance обычно 4100…). Авторизация
+                    по QR или коду из Telegram; chatId — номер телефона или числовой ID чата.
+                  </p>
+                )}
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="instanceLabel">Название (необязательно)</label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.inputIcon}>
+                    <Icon name="label" size="sm" />
+                  </span>
+                  <input
+                    id="instanceLabel"
+                    data-cy="instance-label"
+                    className={inputClass(false)}
+                    value={label}
+                    onChange={(e) => setLabel(e.target.value)}
+                    placeholder="Например, Поддержка"
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               <div className={styles.field}>

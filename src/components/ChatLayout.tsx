@@ -2,26 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { canRetryMessage, classifyPollError } from '../api/errorMapping'
 import { chatTitleFromInput } from '../api/chatId'
-import { getMessenger, messengerLabel } from '../api/messenger'
+import { getMessenger } from '../api/messenger'
 import { resolveChatIdFor } from '../api/messengerAdapter'
-import { checkWhatsapp, getStateInstance, sendMessage } from '../api/greenApi'
-import { aliasesFromCheckWhatsapp, chatMatchesId } from '../api/whatsapp'
-import {
-  isInstanceAuthorized,
-  isInstanceUnauthorized,
-  parseStateInstance,
-} from '../api/instanceState'
+import { sendMessage } from '../api/greenApi'
+import { adapterFor } from '../api/messengers'
+import { chatMatchesId } from '../api/whatsapp'
 import { chatIdsMatch } from '../api/notifications'
-import type {
-  Chat,
-  GreenApiCredentials,
-  ParsedChatMessage,
-  StoredMessage,
-} from '../api/types'
+import type { Chat, InstanceProfile, StoredMessage } from '../api/types'
 import { GreenApiError } from '../api/types'
 import { getDemoVariant, isDemoMode } from '../demo/demoMode'
 import { useMediaQuery } from '../hooks/useMediaQuery'
-import { useNotificationPolling } from '../hooks/useNotificationPolling'
 import { usePollRetryCountdown } from '../hooks/usePollRetryCountdown'
 import {
   avatarLabel,
@@ -40,12 +30,28 @@ import { LogoutConfirmModal } from './LogoutConfirmModal'
 import { NetworkErrorBanner } from './NetworkErrorBanner'
 import styles from './ChatLayout.module.css'
 import { NewChatPanel } from './NewChatPanel'
+import { InstanceSwitcher } from './instances/InstanceSwitcher'
+import { MessengerBadge } from './instances/MessengerBadge'
+import {
+  authorizedProfiles,
+  profileForChat,
+  visibleChats,
+  type InstanceFilter,
+} from '../utils/instances'
 
 interface Props {
-  credentials: GreenApiCredentials
+  profiles: InstanceProfile[]
+  states: Record<string, string | null | undefined>
+  filter: InstanceFilter
+  onFilterChange: (filter: InstanceFilter) => void
+  onRefreshState: (id?: string) => Promise<void> | void
+  onOpenDashboard: () => void
+  /** GREEN-API Logout инстанса (после подтверждения) */
+  onLogoutInstance: (id: string) => Promise<boolean>
+  /** Открыть QR / авторизацию инстанса */
+  onAuthorizeInstance?: (id: string) => void
   chats: Chat[]
   messages: StoredMessage[]
-  onLogout: () => void
   onChatsChange: (chats: Chat[]) => void
   onMessagesChange: (updater: StoredMessage[] | ((prev: StoredMessage[]) => StoredMessage[])) => void
   pollError: string | null
@@ -54,15 +60,25 @@ interface Props {
   defaultSelectedChatId?: string
 }
 
+function nowMs(): number {
+  return Date.now()
+}
+
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
 export function ChatLayout({
-  credentials,
-  chats,
+  profiles,
+  states,
+  filter,
+  onFilterChange,
+  onRefreshState,
+  onOpenDashboard,
+  onLogoutInstance,
+  onAuthorizeInstance,
+  chats: allChats,
   messages,
-  onLogout,
   onChatsChange,
   onMessagesChange,
   pollError,
@@ -71,8 +87,13 @@ export function ChatLayout({
   defaultSelectedChatId,
 }: Props) {
   const demoVariant = getDemoVariant()
-  const channel = messengerLabel(credentials)
-  const isWhatsApp = getMessenger(credentials) === 'whatsapp'
+  const filterProfile = filter === 'all' ? null : (profiles.find((p) => p.id === filter) ?? null)
+  const chats = visibleChats(allChats, filter, profiles)
+  const channel = filterProfile ? adapterFor(filterProfile).label : 'все инстансы'
+  const authorized = authorizedProfiles(profiles, states)
+  const [newChatInstanceId, setNewChatInstanceId] = useState<string | null>(null)
+  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [loggingOut, setLoggingOut] = useState(false)
   const [selectedChatId, setSelectedChatId] = useState<string | null>(
     () => defaultSelectedChatId ?? chats[0]?.id ?? null,
   )
@@ -84,27 +105,7 @@ export function ChatLayout({
   const [sendError, setSendError] = useState<string | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
   const [lastSeenByChat, setLastSeenByChat] = useState<Record<string, number>>({})
-  const [instanceState, setInstanceState] = useState<string | null>(() => {
-    if (demoVariant === 'unauthorized') {
-      return 'notAuthorized'
-    }
-    if (isDemoMode() && demoVariant !== 'loading') {
-      return 'authorized'
-    }
-    return null
-  })
-  const [instanceBlocked, setInstanceBlocked] = useState(
-    () => demoVariant === 'unauthorized',
-  )
-  const [syncLoading, setSyncLoading] = useState(() => {
-    if (demoVariant === 'loading') {
-      return true
-    }
-    if (demoVariant === 'unauthorized' || isDemoMode()) {
-      return false
-    }
-    return true
-  })
+  const instanceState = filterProfile ? (states[filterProfile.id] ?? null) : null
   const [checkingState, setCheckingState] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(() => getDemoVariant() === 'logout')
   const [mobileShowChat, setMobileShowChat] = useState(
@@ -117,9 +118,11 @@ export function ChatLayout({
   const selectedChat = chats.find((c) => c.id === selectedChatId) ?? null
 
   const showUnauthorized =
-    demoVariant === 'unauthorized' || (instanceBlocked && demoVariant !== 'loading')
+    demoVariant === 'unauthorized' ||
+    Boolean(filterProfile && instanceState && instanceState !== 'authorized')
 
-  const showSyncLoading = demoVariant === 'loading' || (syncLoading && !showUnauthorized)
+  const showSyncLoading =
+    !showUnauthorized && Boolean(filterProfile && states[filterProfile.id] === undefined)
 
   const effectivePollError =
     demoVariant === 'network'
@@ -150,12 +153,13 @@ export function ChatLayout({
     )
   }, [chats, searchQuery])
 
-  const chatMessages = useMemo(
-    () => (selectedChat ? getChatMessages(messages, selectedChat.chatId) : []),
-    [messages, selectedChat],
-  )
+  const selectedProfile = profileForChat(selectedChat, profiles)
 
-  const messageGroups = useMemo(() => groupMessagesByDay(chatMessages), [chatMessages])
+  const chatMessages = selectedChat
+    ? getChatMessages(messages, selectedChat.chatId, selectedChat.instanceId)
+    : []
+
+  const messageGroups = groupMessagesByDay(chatMessages)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -166,70 +170,35 @@ export function ChatLayout({
   }, [chatMessages.length, selectedChatId, scrollToBottom])
 
   const refreshInstanceState = useCallback(async () => {
-    if (demoVariant === 'unauthorized') {
-      setInstanceBlocked(true)
-      setInstanceState('notAuthorized')
-      setSyncLoading(false)
-      return
-    }
-    if (isDemoMode()) {
-      setInstanceBlocked(false)
-      setInstanceState('authorized')
-      setSyncLoading(false)
-      return
-    }
     setCheckingState(true)
     try {
-      const raw = await getStateInstance(credentials)
-      const state = parseStateInstance(raw)
-      setInstanceState(state)
-      setInstanceBlocked(isInstanceUnauthorized(state) && !isInstanceAuthorized(state))
-    } catch {
-      setInstanceBlocked(false)
+      await onRefreshState(filterProfile?.id)
     } finally {
       setCheckingState(false)
-      setSyncLoading(false)
     }
-  }, [credentials, demoVariant])
+  }, [filterProfile, onRefreshState])
 
-  useEffect(() => {
-    if (demoVariant === 'loading') {
-      const t = window.setTimeout(() => setSyncLoading(false), 2500)
-      return () => window.clearTimeout(t)
+  const confirmLogoutInstance = async () => {
+    if (isDemoMode() || !filterProfile) {
+      setLogoutOpen(false)
+      onOpenDashboard()
+      return
     }
-    if (isDemoMode()) {
-      return undefined
-    }
-    let cancelled = false
-    queueMicrotask(() => {
-      if (!cancelled) {
-        setCheckingState(true)
+    setLoggingOut(true)
+    setLogoutError(null)
+    try {
+      const ok = await onLogoutInstance(filterProfile.id)
+      if (!ok) {
+        setLogoutError('GREEN-API не подтвердил Logout (isLogout=false)')
+        return
       }
-    })
-    getStateInstance(credentials)
-      .then((raw) => {
-        if (cancelled) {
-          return
-        }
-        const state = parseStateInstance(raw)
-        setInstanceState(state)
-        setInstanceBlocked(isInstanceUnauthorized(state) && !isInstanceAuthorized(state))
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setInstanceBlocked(false)
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setCheckingState(false)
-          setSyncLoading(false)
-        }
-      })
-    return () => {
-      cancelled = true
+      setLogoutOpen(false)
+    } catch (err) {
+      setLogoutError(err instanceof Error ? err.message : 'Ошибка Logout')
+    } finally {
+      setLoggingOut(false)
     }
-  }, [credentials, demoVariant])
+  }
 
   const selectChat = (chatId: string) => {
     setSelectedChatId(chatId)
@@ -240,7 +209,7 @@ export function ChatLayout({
   }
 
   const sendText = async (text: string, localId: string) => {
-    if (!selectedChat) {
+    if (!selectedChat || !selectedProfile) {
       return
     }
     onMessagesChange((prev) =>
@@ -253,7 +222,7 @@ export function ChatLayout({
     setSending(true)
     setSendError(null)
     try {
-      const res = await sendMessage(credentials, selectedChat.chatId, text)
+      const res = await sendMessage(selectedProfile, selectedChat.chatId, text)
       onMessagesChange((prev) =>
         prev.map((m) =>
           m.id === localId
@@ -286,53 +255,6 @@ export function ChatLayout({
     void sendText(msg.text, msg.id)
   }
 
-  const handleIncoming = useCallback(
-    (incoming: ParsedChatMessage) => {
-      onPollError(null)
-      const existing = chats.find((c) => chatMatchesId(c, incoming.chatId, chatIdsMatch))
-      // Сообщение кладём в основной chatId чата (WhatsApp @lid → чат по номеру)
-      const targetChatId = existing?.chatId ?? incoming.chatId
-      onMessagesChange((prev) => {
-        if (
-          incoming.idMessage &&
-          prev.some((m) => m.idMessage === incoming.idMessage)
-        ) {
-          return prev
-        }
-        return [
-          ...prev,
-          {
-            id: newId(),
-            chatId: targetChatId,
-            text: incoming.text,
-            timestamp: incoming.timestamp ?? Date.now(),
-            direction: incoming.direction,
-            idMessage: incoming.idMessage,
-            ...(incoming.direction === 'outgoing' ? { status: 'sent' as const } : {}),
-          },
-        ]
-      })
-
-      if (!existing) {
-        const chat: Chat = {
-          id: newId(),
-          chatId: incoming.chatId,
-          title: incoming.senderName ?? incoming.chatId,
-          createdAt: Date.now(),
-        }
-        onChatsChange([chat, ...chats])
-      }
-    },
-    [chats, onChatsChange, onMessagesChange, onPollError],
-  )
-
-  useNotificationPolling({
-    credentials,
-    enabled: !isDemoMode() && !instanceBlocked && !showSyncLoading,
-    onMessage: handleIncoming,
-    onError: (err) => onPollError(err),
-  })
-
   const closeNewChat = () => {
     setNewChatOpen(false)
     setCreateError(null)
@@ -342,26 +264,38 @@ export function ChatLayout({
   const handleCreateChat = async (e: FormEvent) => {
     e.preventDefault()
     setCreateError(null)
+    const target =
+      filterProfile ??
+      profiles.find((p) => p.id === newChatInstanceId) ??
+      authorized[0] ??
+      profiles[0]
+    if (!target) {
+      setCreateError('Нет инстанса для нового чата')
+      return
+    }
+    const adapter = adapterFor(target)
     try {
-      const chatId = resolveChatIdFor(credentials, newChatInput)
-      const duplicate = chats.find((c) => chatMatchesId(c, chatId, chatIdsMatch))
+      const chatId = resolveChatIdFor(target, newChatInput)
+      const duplicate = allChats.find(
+        (c) => (c.instanceId ?? target.id) === target.id && chatMatchesId(c, chatId, chatIdsMatch),
+      )
       if (duplicate) {
         selectChat(duplicate.id)
         closeNewChat()
         return
       }
       let aliases: string[] = []
-      if (isWhatsApp && !isDemoMode() && !chatId.endsWith('@g.us')) {
-        // CheckWhatsapp: наличие аккаунта и lid, чтобы ответы с …@lid попали в этот чат
+      if (adapter.checkRecipient && !isDemoMode()) {
+        // WhatsApp: CheckWhatsapp — наличие аккаунта и lid, чтобы ответы с …@lid попали в этот чат
         try {
-          const check = await checkWhatsapp(credentials, chatId)
-          if (check.existsWhatsapp === false) {
-            setCreateError('Номер не зарегистрирован в WhatsApp (CheckWhatsapp)')
+          const check = await adapter.checkRecipient(target, chatId)
+          if (!check.exists) {
+            setCreateError(`Номер не зарегистрирован в ${adapter.label}`)
             return
           }
-          aliases = aliasesFromCheckWhatsapp(chatId, check)
+          aliases = check.aliases
         } catch {
-          /* CheckWhatsapp необязателен: создаём чат без алиасов */
+          /* проверка необязательна: создаём чат без алиасов */
         }
       }
       const chat: Chat = {
@@ -370,9 +304,10 @@ export function ChatLayout({
         title: chatTitleFromInput(newChatInput, chatId),
         phone: newChatInput.trim(),
         ...(aliases.length ? { aliases } : {}),
+        instanceId: target.id,
         createdAt: Date.now(),
       }
-      onChatsChange([chat, ...chats])
+      onChatsChange([chat, ...allChats])
       selectChat(chat.id)
       closeNewChat()
     } catch (err) {
@@ -396,6 +331,7 @@ export function ChatLayout({
           timestamp: Date.now(),
           direction: 'outgoing',
           status: 'sent',
+          instanceId: selectedChat.instanceId,
         },
       ])
       return
@@ -407,9 +343,10 @@ export function ChatLayout({
       id: localId,
       chatId: selectedChat.chatId,
       text,
-      timestamp: Date.now(),
+      timestamp: nowMs(),
       direction: 'outgoing',
       status: 'sending',
+      instanceId: selectedChat.instanceId,
     }
     onMessagesChange((prev) => [...prev, optimistic])
     await sendText(text, localId)
@@ -446,7 +383,7 @@ export function ChatLayout({
                 <Icon name="chat" filled />
               </div>
               <div>
-                <div className={styles.brandTitle}>GREEN-API {channel}</div>
+                <div className={styles.brandTitle}>GREEN-API · {filterProfile ? channel : 'Все'}</div>
                 <div className={styles.onlineRow}>
                   <span className={styles.onlineDot} style={{ background: '#fa8c16' }} />
                   Не авторизован
@@ -457,21 +394,26 @@ export function ChatLayout({
         </aside>
         <main className={styles.main}>
           <InstanceUnauthorizedPanel
-            credentials={credentials}
+            credentials={filterProfile ?? profiles[0]}
             stateLabel={instanceState}
             checking={checkingState}
             onRecheck={() => void refreshInstanceState()}
-            onChangeInstance={() => setLogoutOpen(true)}
+            onChangeInstance={onOpenDashboard}
+            onAuthorize={
+              filterProfile && onAuthorizeInstance && !isDemoMode()
+                ? () => onAuthorizeInstance(filterProfile.id)
+                : undefined
+            }
           />
         </main>
         <LogoutConfirmModal
           open={logoutOpen}
-          idInstance={credentials.idInstance}
+          idInstance={filterProfile?.idInstance ?? profiles[0]?.idInstance ?? ''}
+          messengerLabel={channel}
+          busy={loggingOut}
+          error={logoutError}
           onCancel={() => setLogoutOpen(false)}
-          onConfirm={() => {
-            setLogoutOpen(false)
-            onLogout()
-          }}
+          onConfirm={() => void confirmLogoutInstance()}
         />
       </div>
     )
@@ -486,7 +428,7 @@ export function ChatLayout({
               <Icon name="chat" filled />
             </div>
             <div>
-              <div className={styles.brandTitle}>GREEN-API {channel}</div>
+              <div className={styles.brandTitle}>GREEN-API · {filterProfile ? channel : 'Все'}</div>
               <div className={styles.onlineRow}>
                 <span className={styles.onlineDot} />
                 В сети
@@ -494,19 +436,34 @@ export function ChatLayout({
             </div>
           </div>
           <div className={styles.headActions}>
-            <button type="button" className={styles.iconBtn} title="Обновить статус">
+            <button
+              type="button"
+              className={styles.iconBtn}
+              title="Обновить статус"
+              onClick={() => void refreshInstanceState()}
+            >
               <Icon name="sync" size="sm" />
             </button>
             <button
               type="button"
+              className={styles.iconBtn}
+              title="Инстансы"
+              data-cy="open-dashboard"
+              onClick={onOpenDashboard}
+            >
+              <Icon name="apps" size="sm" />
+            </button>
+            <button
+              type="button"
               className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
-              title="Выйти"
-              onClick={() => setLogoutOpen(true)}
+              title={filterProfile ? 'Выйти из инстанса (Logout)' : 'К списку инстансов'}
+              onClick={() => (filterProfile ? setLogoutOpen(true) : onOpenDashboard())}
             >
               <Icon name="logout" size="sm" />
             </button>
           </div>
         </div>
+        <InstanceSwitcher profiles={profiles} states={states} value={filter} onChange={onFilterChange} />
 
         <div className={styles.panel}>
           <div className={styles.searchWrap}>
@@ -557,7 +514,8 @@ export function ChatLayout({
         ) : (
           <ul className={styles.chatList}>
             {filteredChats.map((chat, index) => {
-              const last = getLastMessage(messages, chat.chatId)
+              const last = getLastMessage(messages, chat.chatId, chat.instanceId)
+              const chatProfile = profileForChat(chat, profiles)
               const unread = getUnreadCount(messages, chat, selectedChatId, lastSeenByChat)
               const isActive = chat.id === selectedChatId
               return (
@@ -574,7 +532,12 @@ export function ChatLayout({
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className={styles.chatRowTop}>
-                        <span className={styles.chatName}>{chat.title}</span>
+                        <span className={styles.chatName}>
+                          {filter === 'all' && chatProfile && (
+                            <MessengerBadge messenger={getMessenger(chatProfile)} size="sm" />
+                          )}{' '}
+                          {chat.title}
+                        </span>
                         <span
                           className={`${styles.chatTime} ${isActive ? styles.chatTimeActive : ''}`}
                         >
@@ -600,10 +563,14 @@ export function ChatLayout({
             </div>
             <div>
               <div className={styles.instanceTitle}>
-                Инстанс активен
+                {filterProfile ? filterProfile.label : `Инстансов: ${profiles.length}`}
                 <span className={styles.onlineDot} />
               </div>
-              <div className={styles.instanceId}>id: {credentials.idInstance}</div>
+              <div className={styles.instanceId}>
+                {filterProfile
+                  ? `id: ${filterProfile.idInstance}`
+                  : `авторизовано: ${authorized.length}`}
+              </div>
             </div>
           </div>
           <button type="button" className={styles.iconBtn} title="Настройки">
@@ -669,7 +636,12 @@ export function ChatLayout({
                 <div className={styles.headerAvatar}>{avatarLabel(selectedChat.title)}</div>
                 <div>
                   <h2 className={styles.chatHeaderName}>{selectedChat.title}</h2>
-                  <p className={styles.chatHeaderMeta}>{channel} · GREEN-API • В сети</p>
+                  <p className={styles.chatHeaderMeta}>
+                    {selectedProfile
+                      ? `${adapterFor(selectedProfile).label} · ${selectedProfile.label} · `
+                      : ''}
+                    GREEN-API • В сети
+                  </p>
                 </div>
               </div>
               <div className={styles.headerActions}>
@@ -806,7 +778,15 @@ export function ChatLayout({
       </main>
 
       <NewChatPanel
-        messenger={getMessenger(credentials)}
+        messenger={getMessenger(
+          filterProfile ??
+            profiles.find((p) => p.id === newChatInstanceId) ??
+            authorized[0] ??
+            profiles[0],
+        )}
+        instances={filterProfile ? [] : authorized}
+        instanceId={newChatInstanceId ?? authorized[0]?.id ?? null}
+        onInstanceChange={setNewChatInstanceId}
         open={newChatOpen}
         value={newChatInput}
         onChange={setNewChatInput}
@@ -816,12 +796,12 @@ export function ChatLayout({
       />
       <LogoutConfirmModal
         open={logoutOpen}
-        idInstance={credentials.idInstance}
+        idInstance={filterProfile?.idInstance ?? profiles[0]?.idInstance ?? ''}
+        messengerLabel={channel}
+        busy={loggingOut}
+        error={logoutError}
         onCancel={() => setLogoutOpen(false)}
-        onConfirm={() => {
-          setLogoutOpen(false)
-          onLogout()
-        }}
+        onConfirm={() => void confirmLogoutInstance()}
       />
     </div>
   )

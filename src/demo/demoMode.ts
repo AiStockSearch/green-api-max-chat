@@ -1,4 +1,4 @@
-import type { Chat, GreenApiCredentials, StoredMessage } from '../api/types'
+import type { Chat, GreenApiCredentials, InstanceProfile, StoredMessage } from '../api/types'
 
 export type DemoVariant =
   | 'empty'
@@ -15,6 +15,7 @@ export type DemoVariant =
   | 'partner'
   | 'create-instance'
   | 'instance-qr'
+  | 'dashboard'
   | null
 
 export function getDemoVariant(): DemoVariant {
@@ -34,6 +35,7 @@ export function getDemoVariant(): DemoVariant {
     'partner',
     'create-instance',
     'instance-qr',
+    'dashboard',
   ]
   if (allowed.includes(v as DemoVariant)) {
     return v as DemoVariant
@@ -50,6 +52,37 @@ export const DEMO_CREDENTIALS: GreenApiCredentials = {
   apiTokenInstance: 'demo-token-not-real',
   apiUrl: 'https://api.green-api.com',
 }
+
+/** Демо-профили для ?demo=dashboard (3 мессенджера) */
+export const DEMO_PROFILES: InstanceProfile[] = [
+  {
+    ...DEMO_CREDENTIALS,
+    idInstance: '7105183921',
+    messenger: 'max',
+    id: 'max:7105183921',
+    label: 'MAX — поддержка',
+    remember: false,
+    createdAt: 0,
+  },
+  {
+    ...DEMO_CREDENTIALS,
+    idInstance: '7107000001',
+    messenger: 'whatsapp',
+    id: 'whatsapp:7107000001',
+    label: 'WhatsApp — продажи',
+    remember: false,
+    createdAt: 0,
+  },
+  {
+    ...DEMO_CREDENTIALS,
+    idInstance: '4100000001',
+    messenger: 'telegram',
+    id: 'telegram:4100000001',
+    label: 'Telegram — бот-аккаунт',
+    remember: false,
+    createdAt: 0,
+  },
+]
 
 export const DEMO_PARTNER = {
   partnerToken: 'gac.demo-partner-token',

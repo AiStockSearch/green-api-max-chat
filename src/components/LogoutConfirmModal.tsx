@@ -4,11 +4,22 @@ import styles from './LogoutConfirmModal.module.css'
 interface Props {
   open: boolean
   idInstance: string
+  messengerLabel?: string
+  busy?: boolean
+  error?: string | null
   onCancel: () => void
   onConfirm: () => void
 }
 
-export function LogoutConfirmModal({ open, idInstance, onCancel, onConfirm }: Props) {
+export function LogoutConfirmModal({
+  open,
+  idInstance,
+  messengerLabel,
+  busy = false,
+  error = null,
+  onCancel,
+  onConfirm,
+}: Props) {
   if (!open) {
     return null
   }
@@ -36,24 +47,36 @@ export function LogoutConfirmModal({ open, idInstance, onCancel, onConfirm }: Pr
           </div>
         </div>
         <p className={styles.text}>
-          Текущая сессия работы с инстансом <strong>#{idInstance}</strong> будет завершена. Для
-          отправки и получения сообщений потребуется повторная авторизация через{' '}
-          <code>idInstance</code> и <code>apiTokenInstance</code>.
+          Будет вызван метод GREEN-API <code>Logout</code>: аккаунт{messengerLabel ? ` ${messengerLabel}` : ''}{' '}
+          отвяжется от инстанса <strong>#{idInstance}</strong>, состояние станет{' '}
+          <code>notAuthorized</code>. Чтобы снова получать и отправлять сообщения, нужно заново
+          отсканировать QR-код.
         </p>
         <div className={styles.info}>
           <Icon name="info" size="sm" />
           <span>
-            История сообщений и сохранённые настройки останутся в GREEN-API и не будут удалены с
-            серверов.
+            Инстанс останется в приложении и в личном кабинете GREEN-API. Чтобы только убрать его из
+            приложения без Logout — используйте «Убрать из приложения» на экране инстансов.
           </span>
         </div>
+        {error && (
+          <p className={styles.text} role="alert" data-cy="logout-error">
+            {error}
+          </p>
+        )}
         <div className={styles.actions}>
           <button type="button" className={styles.cancel} onClick={onCancel}>
             Отмена
           </button>
-          <button type="button" className={styles.confirm} onClick={onConfirm}>
+          <button
+            type="button"
+            className={styles.confirm}
+            onClick={onConfirm}
+            disabled={busy}
+            data-cy="logout-confirm"
+          >
             <Icon name="logout" size="sm" />
-            Выйти
+            {busy ? 'Выходим…' : 'Выйти (Logout)'}
           </button>
         </div>
       </div>

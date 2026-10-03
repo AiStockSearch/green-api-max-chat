@@ -181,3 +181,35 @@ export async function checkWhatsapp(
   })
   return data ?? {}
 }
+
+export interface TelegramAuthResult {
+  status?: boolean
+  data?: { status?: string; reason?: string; retryAfter?: number }
+}
+
+/** POST startAuthorization — Telegram: запрос кода входа на номер (альтернатива QR). */
+export async function startAuthorization(
+  credentials: GreenApiCredentials,
+  phoneNumber: number,
+): Promise<TelegramAuthResult> {
+  const url = instancePath(credentials, 'startAuthorization')
+  const { data } = await requestJson<TelegramAuthResult>(url, {
+    method: 'POST',
+    body: JSON.stringify({ phoneNumber }),
+  })
+  return data ?? {}
+}
+
+/** POST sendAuthorizationCode — Telegram: код из SMS/системного чата (+ пароль 2FA при наличии). */
+export async function sendAuthorizationCode(
+  credentials: GreenApiCredentials,
+  code: string,
+  password?: string,
+): Promise<TelegramAuthResult> {
+  const url = instancePath(credentials, 'sendAuthorizationCode')
+  const { data } = await requestJson<TelegramAuthResult>(url, {
+    method: 'POST',
+    body: JSON.stringify(password ? { code, password } : { code }),
+  })
+  return data ?? {}
+}

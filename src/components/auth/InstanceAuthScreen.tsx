@@ -6,9 +6,8 @@ import {
   resolveAuthPhase,
   shouldContinueStatePolling,
 } from '../../api/instanceAuthPolling'
-import { getMessenger, MESSENGER_LABELS } from '../../api/messenger'
-import { qrPageUrlFor } from '../../api/messengerAdapter'
-import { qrErrorNeedsLogout } from '../../api/whatsapp'
+import { adapterFor } from '../../api/messengers'
+import { telegramAuthPhone, telegramAuthReasonText } from '../../api/telegram'
 import {
   parseQrResponse,
   qrDataUrlFromMessage,
@@ -18,7 +17,9 @@ import {
   fetchInstanceQr,
   getStateInstance,
   logoutInstance,
+  sendAuthorizationCode,
   sendAuthorizationPassword,
+  startAuthorization,
 } from '../../api/greenApi'
 import { isInstanceAuthorized, parseStateInstance } from '../../api/instanceState'
 import type { GreenApiCredentials } from '../../api/types'
@@ -45,9 +46,15 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [submittingPassword, setSubmittingPassword] = useState(false)
   const authorizedOnce = useRef(false)
-  const messenger = getMessenger(credentials)
-  const label = MESSENGER_LABELS[messenger]
-  const isWhatsApp = messenger === 'whatsapp'
+  const adapter = adapterFor(credentials)
+  const label = adapter.label
+  const [codeMode, setCodeMode] = useState(false)
+  const [authPhone, setAuthPhone] = useState('')
+  const [authCode, setAuthCode] = useState('')
+  const [authCodePassword, setAuthCodePassword] = useState('')
+  const [codeRequested, setCodeRequested] = useState(false)
+  const [codeBusy, setCodeBusy] = useState(false)
+  const [codeMessage, setCodeMessage] = useState<string | null>(null)
   const [needsLogout, setNeedsLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -104,12 +111,12 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
         setQrSrc(qrDataUrlFromMessage(parsed.message))
       } else if (parsed.type === 'error') {
         setStatusText(parsed.message || 'Ошибка QR')
-        setNeedsLogout(isWhatsApp && qrErrorNeedsLogout(parsed.message))
+        setNeedsLogout(adapter.qrNeedsLogout(parsed.message))
       }
     } catch (err) {
       setStatusText(err instanceof Error ? err.message : 'Не удалось получить QR')
     }
-  }, [credentials, isWhatsApp, refreshState])
+  }, [adapter, credentials, refreshState])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -178,7 +185,49 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
     }
   }
 
-  const qrPage = qrPageUrlFor(credentials)
+  const handleStartCode = async (e: FormEvent) => {
+    e.preventDefault()
+    setCodeMessage(null)
+    setCodeBusy(true)
+    try {
+      const res = await startAuthorization(credentials, telegramAuthPhone(authPhone))
+      if (res.status || res.data?.status === 'success') {
+        setCodeRequested(true)
+        setCodeMessage('Код отправлен в Telegram (системный чат или SMS)')
+      } else {
+        setCodeMessage(telegramAuthReasonText(res.data?.reason))
+      }
+    } catch (err) {
+      setCodeMessage(err instanceof Error ? err.message : 'Ошибка startAuthorization')
+    } finally {
+      setCodeBusy(false)
+    }
+  }
+
+  const handleSendCode = async (e: FormEvent) => {
+    e.preventDefault()
+    setCodeMessage(null)
+    setCodeBusy(true)
+    try {
+      const res = await sendAuthorizationCode(
+        credentials,
+        authCode.trim(),
+        authCodePassword || undefined,
+      )
+      if (res.status || res.data?.status === 'success') {
+        setCodeMessage('Код принят, проверяем состояние…')
+        void refreshState()
+      } else {
+        setCodeMessage(telegramAuthReasonText(res.data?.reason))
+      }
+    } catch (err) {
+      setCodeMessage(err instanceof Error ? err.message : 'Ошибка sendAuthorizationCode')
+    } finally {
+      setCodeBusy(false)
+    }
+  }
+
+  const qrPage = adapter.qrPageUrl(credentials)
 
   return (
     <div className={styles.page} data-ui="instance-auth">
@@ -217,17 +266,7 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
               <a className={styles.qrLink} href={qrPage} target="_blank" rel="noreferrer">
                 Открыть qr.green-api.com
               </a>
-              {isWhatsApp ? (
-                <p className={styles.hint}>
-                  WhatsApp: телефон → «Связанные устройства» → «Привязка устройства», отсканируйте
-                  QR. Код обновляется автоматически.
-                </p>
-              ) : (
-                <p className={styles.hint}>
-                  Документация рекомендует обновлять QR каждые ~5 сек. Для MAX: QR +
-                  SendAuthorizationPassword при stateInstance pendingPassword.
-                </p>
-              )}
+              <p className={styles.hint}>{adapter.qrHint}</p>
               {needsLogout && (
                 <button
                   type="button"
@@ -242,9 +281,67 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
             </div>
           )}
 
-          {phase === 'pending_password' && (
+          {adapter.supportsPhoneCodeAuth && (phase === 'qr' || phase === 'checking') && (
+            <div className={styles.passwordForm} data-cy="tg-code-auth">
+              {!codeMode ? (
+                <button
+                  type="button"
+                  className={styles.backBtn}
+                  onClick={() => setCodeMode(true)}
+                  data-cy="tg-code-toggle"
+                >
+                  Войти по коду (startAuthorization)
+                </button>
+              ) : !codeRequested ? (
+                <form onSubmit={(e) => void handleStartCode(e)}>
+                  <label htmlFor="tgPhone">Номер телефона Telegram</label>
+                  <input
+                    id="tgPhone"
+                    value={authPhone}
+                    onChange={(e) => setAuthPhone(e.target.value)}
+                    placeholder="+79990000000"
+                    autoComplete="tel"
+                    disabled={codeBusy}
+                  />
+                  <button type="submit" className={styles.primaryBtn} disabled={codeBusy}>
+                    Получить код
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={(e) => void handleSendCode(e)}>
+                  <label htmlFor="tgCode">Код из Telegram</label>
+                  <input
+                    id="tgCode"
+                    value={authCode}
+                    onChange={(e) => setAuthCode(e.target.value)}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    disabled={codeBusy}
+                  />
+                  <label htmlFor="tgCodePassword">Облачный пароль (если есть)</label>
+                  <input
+                    id="tgCodePassword"
+                    type="password"
+                    value={authCodePassword}
+                    onChange={(e) => setAuthCodePassword(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={codeBusy}
+                  />
+                  <button type="submit" className={styles.primaryBtn} disabled={codeBusy}>
+                    sendAuthorizationCode
+                  </button>
+                </form>
+              )}
+              {codeMessage && <p className={styles.hint}>{codeMessage}</p>}
+              <p className={styles.hint}>
+                Telegram ограничивает вход по коду — надёжнее QR (рекомендация GREEN-API).
+              </p>
+            </div>
+          )}
+
+          {phase === 'pending_password' && adapter.supportsPassword2fa && (
             <form className={styles.passwordForm} onSubmit={(e) => void handlePassword(e)}>
-              <label htmlFor="max2fa">Пароль 2FA MAX</label>
+              <label htmlFor="max2fa">Пароль 2FA {label}</label>
               <input
                 id="max2fa"
                 type="password"

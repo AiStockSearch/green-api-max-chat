@@ -9,6 +9,8 @@ interface Props {
   checking: boolean
   onRecheck: () => void
   onChangeInstance: () => void
+  /** Открыть экран QR / авторизации этого инстанса */
+  onAuthorize?: () => void
 }
 
 export function InstanceUnauthorizedPanel({
@@ -17,6 +19,7 @@ export function InstanceUnauthorizedPanel({
   checking,
   onRecheck,
   onChangeInstance,
+  onAuthorize,
 }: Props) {
   return (
     <div className={styles.wrap} data-ui="instance-unauthorized">
@@ -52,13 +55,24 @@ export function InstanceUnauthorizedPanel({
             <Icon name="open_in_new" size="sm" />
           </a>
           <div className={styles.actions}>
+            {onAuthorize && (
+              <button
+                type="button"
+                className={styles.primary}
+                onClick={onAuthorize}
+                data-cy="unauthorized-qr"
+              >
+                <Icon name="qr_code_2" size="sm" />
+                Авторизовать по QR
+              </button>
+            )}
             <button type="button" className={styles.primary} disabled={checking} onClick={onRecheck}>
               <Icon name="refresh" size="sm" />
               {checking ? 'Проверка…' : 'Проверить снова'}
             </button>
             <button type="button" className={styles.secondary} onClick={onChangeInstance}>
               <Icon name="checklist" size="sm" />
-              Сменить инстанс
+              К списку инстансов
             </button>
           </div>
           <div className={styles.footer}>

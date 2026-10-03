@@ -28,6 +28,7 @@ export interface IncomingWebhookBody {
     sender?: string
     senderName?: string
     senderPhoneNumber?: number | string
+    chatType?: string
   }
   messageData?: {
     typeMessage?: string
@@ -57,6 +58,8 @@ export interface ParsedChatMessage {
   idMessage?: string
   timestamp?: number
   senderName?: string
+  /** Номер отправителя (Telegram: senderData.senderPhoneNumber) — для связи с чатом, созданным по номеру */
+  senderPhone?: string
   direction: 'incoming' | 'outgoing'
 }
 
@@ -67,6 +70,8 @@ export interface Chat {
   phone?: string
   /** Альтернативные chatId того же собеседника (WhatsApp: …@lid из CheckWhatsapp). */
   aliases?: string[]
+  /** Профиль инстанса, которому принадлежит чат (InstanceProfile.id) */
+  instanceId?: string
   createdAt: number
 }
 
@@ -77,6 +82,8 @@ export interface StoredMessage {
   timestamp: number
   direction: 'incoming' | 'outgoing'
   idMessage?: string
+  /** Профиль инстанса (InstanceProfile.id) */
+  instanceId?: string
   status?: 'sending' | 'sent' | 'failed'
   error?: string
 }
@@ -91,4 +98,14 @@ export class GreenApiError extends Error {
     this.status = status
     this.details = details
   }
+}
+
+/** Сохранённый профиль инстанса (несколько инстансов одновременно). */
+export interface InstanceProfile extends GreenApiCredentials {
+  /** `${messenger}:${idInstance}` */
+  id: string
+  label: string
+  /** true — localStorage («Запомнить»), false — sessionStorage */
+  remember: boolean
+  createdAt: number
 }

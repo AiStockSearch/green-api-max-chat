@@ -1,20 +1,27 @@
 import { chatIdsMatch } from '../api/notifications'
 import type { Chat, StoredMessage } from '../api/types'
 
+/** Сообщение принадлежит инстансу (старые сообщения без instanceId подходят любому). */
+export function sameInstance(a: string | undefined, b: string | undefined): boolean {
+  return !a || !b || a === b
+}
+
 export function getChatMessages(
   messages: StoredMessage[],
   chatId: string,
+  instanceId?: string,
 ): StoredMessage[] {
   return messages
-    .filter((m) => chatIdsMatch(m.chatId, chatId))
+    .filter((m) => chatIdsMatch(m.chatId, chatId) && sameInstance(m.instanceId, instanceId))
     .sort((a, b) => a.timestamp - b.timestamp)
 }
 
 export function getLastMessage(
   messages: StoredMessage[],
   chatId: string,
+  instanceId?: string,
 ): StoredMessage | undefined {
-  const list = getChatMessages(messages, chatId)
+  const list = getChatMessages(messages, chatId, instanceId)
   return list[list.length - 1]
 }
 
@@ -93,6 +100,7 @@ export function getUnreadCount(
   return messages.filter(
     (m) =>
       chatIdsMatch(m.chatId, chat.chatId) &&
+      sameInstance(m.instanceId, chat.instanceId) &&
       m.direction === 'incoming' &&
       m.timestamp > seenAt,
   ).length

@@ -8,7 +8,7 @@
 
 📘 **Пошаговое руководство (HTML):** [https://aistocksearch.github.io/green-api-max-chat/guide.html](https://aistocksearch.github.io/green-api-max-chat/guide.html) (исходник: [docs/guide.html](docs/guide.html)) — инстанс MAX, QR-авторизация, запуск локально и в Docker, тесты, CI/CD, FAQ.
 
-Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Если MAX недоступен, ТЗ допускает WhatsApp или Telegram — в приложении есть режим **WhatsApp** (переключатель «Мессенджер» на экране входа). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
+Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Если MAX недоступен, ТЗ допускает WhatsApp или Telegram — в приложении есть режимы **WhatsApp** и **Telegram** (переключатель «Мессенджер» на экране входа). Можно подключить **несколько инстансов сразу** (WhatsApp + Telegram + MAX): экран «Инстансы», единый список чатов с бейджами мессенджеров и параллельный опрос очередей. Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
 
 ## Стек
 
@@ -134,7 +134,7 @@ npm run test:e2e
 | getStateInstance | ✅ |
 | QR (`/qr/`, qr.green-api.com) | ✅ |
 | sendAuthorizationPassword (2FA после QR) | ✅ |
-| getAuthorizationCode / StartAuthorization / SendAuthorizationCode | ❌ не поддерживаются MAX (WhatsApp OTP; см. [новость интеграции MAX](https://green-api.com/articles/en/news/04-02-2026-release-max-integration/)) |
+| getAuthorizationCode / StartAuthorization / SendAuthorizationCode | ❌ не поддерживаются MAX (WhatsApp OTP; см. [новость интеграции MAX](https://green-api.com/articles/en/news/04-02-2026-release-max-integration/)); StartAuthorization/SendAuthorizationCode используются в режиме Telegram |
 | Partner: getInstances, createInstance, deleteInstanceAccount | ✅ (общие методы партнёра; тип мессенджера в ответе `typeInstance`) |
 
 Параметра «создать только MAX» в теле `createInstance` в документации **нет** — тип инстанса определяется на стороне GREEN-API/кабинета.
@@ -153,7 +153,7 @@ npm run test:e2e
 1. Войти с `idInstance`, `apiTokenInstance` и при необходимости скорректировать `apiUrl`.
 2. Создать чат: номер телефона (`79991234567`) или готовый `chatId` (для MAX — числовой ID личного чата, либо `79001234567@c.us` по документации SendMessage).
 3. Отправить текст (**SendMessage**). Enter — отправка, Shift+Enter — новая строка.
-4. Ответ собеседника в MAX (или WhatsApp) появится в чате после опроса очереди.
+4. Ответ собеседника в MAX (WhatsApp, Telegram) появится в чате после опроса очереди.
 
 ## WhatsApp (фолбэк по ТЗ)
 
@@ -170,11 +170,32 @@ npm run test:e2e
 
 Прокси (Vite в dev и nginx в Docker) пропускает те же хосты: `*.api.greenapi.com`, `*.api.green-api.com`, `api.green-api.com`, `api.greenapi.com`.
 
+## Telegram (фолбэк по ТЗ)
+
+На экране входа выберите **Мессенджер → Telegram** (инстанс GREEN-API для Telegram, idInstance обычно `4100…`). Код режима — `src/api/telegram.ts`, `src/api/messengers/telegram.ts`.
+
+| Что | Telegram |
+|-----|----------|
+| chatId | только цифры → ID личного чата (`10000000`); `-100…` → группа; номер с `+`/скобками или `79990000000@c.us` → `{номер}@c.us` |
+| Авторизация | QR на `qr.green-api.com/waInstance{id}/{token}/telegram` («Настройки → Устройства → Подключить устройство»); облачный пароль (2FA) — `sendAuthorizationPassword`; **вход по коду**: `startAuthorization {phoneNumber}` → код из Telegram → `sendAuthorizationCode {code[, password]}` |
+| Уведомления | `incomingMessageReceived` / `outgoingAPIMessageReceived` с `textMessage`; если в `senderData` есть `senderPhoneNumber`, ответ на чат, созданный по номеру, попадает в тот же диалог (числовой chatId сохраняется как алиас) |
+| Ограничения | Только текст; Telegram-инстанс в тестовом аккаунте не авторизован, поэтому живого прогона Telegram не было — логика покрыта unit-тестами по документации GREEN-API |
+
+## Несколько инстансов
+
+- **Экран «Инстансы»** (как в консоли GREEN-API): карточка на каждый подключённый инстанс — бейдж мессенджера (WA / TG / MAX), название, idInstance, статус `getStateInstance` (Авторизован / Неавторизован / …), кнопки «Открыть», «QR / авторизация», «Обновить статусы».
+- **«Добавить инстанс»** — выбор WhatsApp / Telegram / MAX → форма ключей (необязательное «Название»). Профиль хранится по id `messenger:idInstance`: с «Запомнить» — в localStorage, без — в sessionStorage (`src/api/profilesStore.ts`). Старая одиночная сессия мигрирует автоматически.
+- **«Выйти из инстанса»** — после подтверждения в модалке вызывается метод GREEN-API **Logout**: аккаунт мессенджера отвязывается, статус становится `notAuthorized`, приложение предлагает **«Авторизовать по QR»**. Профиль остаётся в приложении. Доступно на карточке и иконкой выхода в чате (при фильтре по инстансу).
+- **«Убрать из приложения»** — после подтверждения удаляет профиль и его локальные чаты/сообщения **без запросов к API** (инстанс в GREEN-API не трогается).
+- **«Все чаты»** — единый список чатов всех инстансов с бейджем мессенджера; переключатель над списком фильтрует по инстансу. Отправка идёт через инстанс, которому принадлежит чат; новый чат в режиме «Все» создаётся с выбором инстанса.
+- **Параллельный опрос**: для каждого авторизованного инстанса свой цикл `receiveNotification`/`deleteNotification` (`InstancePoller`), входящие раскладываются по чатам своего инстанса (`src/utils/inbox.ts`).
+- Демо: [`?demo=dashboard`](https://aistocksearch.github.io/green-api-max-chat/?demo=dashboard).
+
 ## Ограничения
 
 - Только **текст**; медиа и статусы не отображаются.
 - Без Docker запросы идут из браузера напрямую; **CORS** может блокировать API. В **dev** — прокси Vite; в **production** — Docker/nginx (`/green-api-proxy`) или свой backend.
-- Один активный опрос на вкладку; при нескольких вкладках возможны конфликты очереди.
+- Один опрос на инстанс во вкладке; при нескольких вкладках с одним инстансом возможны конфликты очереди.
 - Состояние чатов хранится локально в браузере.
 
 ## Деплой
@@ -230,6 +251,10 @@ _Добавьте URL после публикации, например: `https:
 | Partner: инстансы | docs/screenshots/13-partner-instances.png |
 | Partner: createInstance | docs/screenshots/14-create-instance.png |
 | Авторизация QR | docs/screenshots/15-instance-qr-auth.png |
+| Инстансы (несколько) | docs/screenshots/16-instances-dashboard.png |
+| Все чаты (единый список) | docs/screenshots/17-all-chats.png |
+| Выйти из инстанса (Logout) | docs/screenshots/18-instance-logout-confirm.png |
+| После Logout → QR | docs/screenshots/19-after-logout.png |
 
 ## Структура проекта
 
@@ -237,7 +262,9 @@ _Добавьте URL после публикации, например: `https:
 docker/           — nginx.conf (SPA + green-api-proxy allowlist)
 src/api/          — клиент GREEN-API, same-origin прокси (devProxy.ts), уведомления
 src/hooks/        — опрос ReceiveNotification
-src/components/   — экран входа и layout чата
+src/api/messengers/ — адаптеры MAX / WhatsApp / Telegram (chatId, уведомления, QR)
+src/utils/        — inbox (входящие по инстансам), instances (фильтр, удаление)
+src/components/   — экран входа, layout чата, instances/ (дашборд, переключатель, опрос)
 src/styles/       — theme.css (CSS-переменные), global.css, ui.module.css
 ```
 

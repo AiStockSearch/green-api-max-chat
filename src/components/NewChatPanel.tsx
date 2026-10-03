@@ -1,5 +1,7 @@
 import type { FormEvent } from 'react'
-import { MESSENGER_LABELS, type Messenger } from '../api/messenger'
+import { getAdapter } from '../api/messengers'
+import { getMessenger, type Messenger } from '../api/messenger'
+import type { InstanceProfile } from '../api/types'
 import { Icon } from './Icon'
 import styles from './NewChatPanel.module.css'
 
@@ -11,6 +13,10 @@ interface Props {
   onClose: () => void
   error: string | null
   messenger?: Messenger
+  /** Если передан непустой список — показываем выбор инстанса (режим «Все инстансы») */
+  instances?: InstanceProfile[]
+  instanceId?: string | null
+  onInstanceChange?: (id: string) => void
 }
 
 export function NewChatPanel({
@@ -21,8 +27,11 @@ export function NewChatPanel({
   onClose,
   error,
   messenger = 'max',
+  instances = [],
+  instanceId = null,
+  onInstanceChange,
 }: Props) {
-  const isWhatsApp = messenger === 'whatsapp'
+  const adapter = getAdapter(messenger)
   if (!open) {
     return null
   }
@@ -63,9 +72,29 @@ export function NewChatPanel({
         </div>
 
         <form className={styles.form} onSubmit={onSubmit}>
+          {instances.length > 1 && (
+            <div>
+              <label className={styles.fieldLabel} htmlFor="new-chat-instance">
+                Инстанс
+              </label>
+              <select
+                id="new-chat-instance"
+                data-cy="new-chat-instance"
+                className={styles.phoneInput}
+                value={instanceId ?? instances[0].id}
+                onChange={(e) => onInstanceChange?.(e.target.value)}
+              >
+                {instances.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {getAdapter(getMessenger(p)).label} · {p.label} ({p.idInstance})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className={styles.fieldLabel} htmlFor="new-chat-phone">
-              Номер телефона
+              {adapter.newChatLabel}
             </label>
             <div className={styles.phoneWrap}>
               <span className={styles.phoneIcon}>
@@ -76,16 +105,14 @@ export function NewChatPanel({
                 className={styles.phoneInput}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                placeholder="+7 (___) ___-__-__"
+                placeholder={adapter.newChatPlaceholder}
                 autoComplete="tel"
                 autoFocus
               />
             </div>
             <div className={styles.fieldHint}>
               <Icon name="info" size="sm" />
-              {isWhatsApp
-                ? 'Номер в международном формате (например +79990000000) или chatId …@c.us / …@g.us'
-                : 'Введите номер в формате +7XXXXXXXXXX'}
+              {adapter.newChatHint}
             </div>
           </div>
 
@@ -93,7 +120,7 @@ export function NewChatPanel({
             <span className={styles.channelLabel}>Канал отправки:</span>
             <span className={styles.channelBadge}>
               <span className={styles.channelDot} />
-              {MESSENGER_LABELS[messenger]} · GREEN-API
+              {adapter.label} · GREEN-API
             </span>
           </div>
 
