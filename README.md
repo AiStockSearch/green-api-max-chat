@@ -67,7 +67,7 @@ Workflows в `.github/workflows/`:
 | Workflow | Триггер | Что делает |
 |----------|---------|------------|
 | **ci.yml** | push/PR → `main` | `npm ci`, lint, Vitest, build, `docker build`; Cypress **03** (демо, без секретов); live Cypress **01–05** — только если заданы секреты `GREEN_API_*` |
-| **deploy.yml** | push `main`, теги `v*.*.*`, `workflow_dispatch` | Сборка и push образа в **GHCR** (`ghcr.io/js-nanodegree/green-api-max-chat`); GitHub Pages — **только вручную** (`publish_pages=true`) |
+| **deploy.yml** | push `main`, теги `v*.*.*`, `workflow_dispatch` | Сборка и push образа в **GHCR** (`ghcr.io/aistocksearch/green-api-max-chat`); GitHub Pages — **только вручную** (`publish_pages=true`) |
 
 **Статический хостинг** (Vercel, GitHub Pages, S3): CORS к GREEN-API из браузера может блокироваться — нужен свой backend-прокси или используйте **Docker-образ** как полное решение.
 
@@ -164,7 +164,7 @@ npm run test:e2e
 
 ## Деплой
 
-- **Docker / GHCR** (рекомендуется): `deploy.yml` → образ с nginx + CORS-прокси; `docker pull ghcr.io/js-nanodegree/green-api-max-chat:main`.
+- **Docker / GHCR** (рекомендуется): `deploy.yml` → образ с nginx + CORS-прокси; `docker pull ghcr.io/aistocksearch/green-api-max-chat:main`.
 - **Vercel**: `vercel.json` (SPA rewrite). Build: `npm run build`, output: `dist` — **без** same-origin прокси, возможен CORS.
 - **GitHub Pages**: вручную через `deploy.yml` → `workflow_dispatch` + `publish_pages=true`; `GITHUB_PAGES=true` при сборке.
 
