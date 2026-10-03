@@ -1,14 +1,60 @@
-# Устарело: используйте workflow "Deploy" (deploy.yml).
-# GitHub Pages — только вручную через workflow_dispatch + publish_pages.
-# Полный CORS-обход — Docker-образ (GHCR), см. README.
+# GitHub Pages: демо-сборка SPA (base /green-api-max-chat/) + HTML-руководство.
+# Без nginx-прокси: live-запросы к GREEN-API из браузера могут упираться в CORS,
+# поэтому Pages предназначен для демо-режима (?demo=…) и документации.
+# Полноценный вариант с CORS-прокси — Docker-образ (deploy.yml → GHCR).
 
-name: Deploy to GitHub Pages (disabled)
+name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  noop:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Используйте .github/workflows/deploy.yml с publish_pages=true"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build (GitHub Pages base path)
+        run: GITHUB_PAGES=true npm run build
+
+      - name: Add guide, screenshots and SPA fallback
+        run: |
+          cp docs/guide.html dist/guide.html
+          mkdir -p dist/screenshots
+          cp docs/screenshots/*.png dist/screenshots/
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

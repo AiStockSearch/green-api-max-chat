@@ -5,17 +5,10 @@ on:
     branches: [main]
     tags: ['v*.*.*']
   workflow_dispatch:
-    inputs:
-      publish_pages:
-        description: 'Deploy static build to GitHub Pages (без nginx-прокси CORS)'
-        type: boolean
-        default: false
 
 permissions:
   contents: read
   packages: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -58,32 +51,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VITE_GREEN_API_SAME_ORIGIN_PROXY=true
-
-  pages-static:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_pages == true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - run: npm ci
-      - run: GITHUB_PAGES=true npm run build
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  pages-deploy:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_pages == true
-    needs: pages-static
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

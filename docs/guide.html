@@ -170,7 +170,7 @@ npm ci
 npm run dev</code></pre>
   <p>Dev-сервер стартует на <a href="http://127.0.0.1:43123">http://127.0.0.1:43123</a> (порт задан в <code>vite.config.ts</code>).</p>
   <h3>Демо-режим без инстанса</h3>
-  <p>Откройте <code>http://127.0.0.1:43123/?demo=active</code> — интерфейс заполнится демо-чатами, реальные запросы к API не нужны. Другие значения <code>demo</code>:</p>
+  <p>Откройте <code>http://127.0.0.1:43123/?demo=active</code> — интерфейс заполнится демо-чатами, реальные запросы к API не нужны. То же самое онлайн, без установки: <a href="https://aistocksearch.github.io/green-api-max-chat/?demo=active">aistocksearch.github.io/green-api-max-chat/?demo=active</a>. Другие значения <code>demo</code>:</p>
   <table>
     <tr><th><code>?demo=</code></th><th>Что показывает</th></tr>
     <tr><td><code>empty</code>, <code>modal</code>, <code>active</code></td><td>Пустой layout, модалка «Новый чат», активный диалог</td></tr>
@@ -327,9 +327,12 @@ npm run build     # tsc -b &amp;&amp; vite build</code></pre>
   <h3><code>.github/workflows/deploy.yml</code> — push в <code>main</code>, теги <code>v*.*.*</code>, ручной запуск</h3>
   <ol class="substeps">
     <li><strong>build-image</strong>: собирает Docker-образ (с <code>VITE_GREEN_API_SAME_ORIGIN_PROXY=true</code>) и пушит в GHCR <code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;</code> с тегами ветки, semver и sha. Пример: <code>docker pull ghcr.io/aistocksearch/green-api-max-chat:main</code>.</li>
-    <li><strong>pages-static / pages-deploy</strong>: публикация статики на GitHub Pages — <strong>только вручную</strong> (<code>workflow_dispatch</code> с <code>publish_pages=true</code>), сборка с <code>GITHUB_PAGES=true</code>. Без nginx-прокси, поэтому возможны CORS-ошибки; по умолчанию Pages не используется.</li>
   </ol>
-  <p><code>deploy-pages.yml</code> устарел и ничего не делает (заглушка с ручным запуском).</p>
+  <h3><code>.github/workflows/deploy-pages.yml</code> — push в <code>main</code>, ручной запуск</h3>
+  <ol class="substeps">
+    <li><strong>build</strong>: <code>GITHUB_PAGES=true npm run build</code> (Vite base <code>/green-api-max-chat/</code>), в артефакт добавляются <code>guide.html</code>, <code>screenshots/*.png</code> и <code>404.html</code> (SPA fallback).</li>
+    <li><strong>deploy</strong>: публикация на GitHub Pages: <a href="https://aistocksearch.github.io/green-api-max-chat/?demo=active">демо-приложение</a> и <a href="https://aistocksearch.github.io/green-api-max-chat/guide.html">это руководство</a>. Прокси нет, поэтому live-запросы к GREEN-API из браузера могут блокироваться CORS — Pages предназначен для демо-режима и документации.</li>
+  </ol>
 </section>
 
 <!-- 11 -->

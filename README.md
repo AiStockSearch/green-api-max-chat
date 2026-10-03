@@ -2,8 +2,11 @@
 
 ![CI](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/ci.yml/badge.svg)
 ![Deploy](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/deploy.yml/badge.svg)
+![Pages](https://github.com/AiStockSearch/green-api-max-chat/actions/workflows/deploy-pages.yml/badge.svg)
 
-📘 **Пошаговое руководство (HTML):** [docs/guide.html](docs/guide.html) — инстанс MAX, QR-авторизация, запуск локально и в Docker, тесты, CI/CD, FAQ.
+🌐 **GitHub Pages:** [демо-приложение](https://aistocksearch.github.io/green-api-max-chat/?demo=active) · [пошаговое руководство](https://aistocksearch.github.io/green-api-max-chat/guide.html)
+
+📘 **Пошаговое руководство (HTML):** [https://aistocksearch.github.io/green-api-max-chat/guide.html](https://aistocksearch.github.io/green-api-max-chat/guide.html) (исходник: [docs/guide.html](docs/guide.html)) — инстанс MAX, QR-авторизация, запуск локально и в Docker, тесты, CI/CD, FAQ.
 
 Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
 
@@ -67,7 +70,8 @@ Workflows в `.github/workflows/`:
 | Workflow | Триггер | Что делает |
 |----------|---------|------------|
 | **ci.yml** | push/PR → `main` | `npm ci`, lint, Vitest, build, `docker build`; Cypress **03** (демо, без секретов); live Cypress **01–05** — только если заданы секреты `GREEN_API_*` |
-| **deploy.yml** | push `main`, теги `v*.*.*`, `workflow_dispatch` | Сборка и push образа в **GHCR** (`ghcr.io/aistocksearch/green-api-max-chat`); GitHub Pages — **только вручную** (`publish_pages=true`) |
+| **deploy.yml** | push `main`, теги `v*.*.*`, `workflow_dispatch` | Сборка и push образа в **GHCR** (`ghcr.io/aistocksearch/green-api-max-chat`) |
+| **deploy-pages.yml** | push `main`, `workflow_dispatch` | Демо-сборка SPA (`GITHUB_PAGES=true`, base `/green-api-max-chat/`) + `docs/guide.html` и `docs/screenshots` → **GitHub Pages** |
 
 **Статический хостинг** (Vercel, GitHub Pages, S3): CORS к GREEN-API из браузера может блокироваться — нужен свой backend-прокси или используйте **Docker-образ** как полное решение.
 
@@ -166,7 +170,7 @@ npm run test:e2e
 
 - **Docker / GHCR** (рекомендуется): `deploy.yml` → образ с nginx + CORS-прокси; `docker pull ghcr.io/aistocksearch/green-api-max-chat:main`.
 - **Vercel**: `vercel.json` (SPA rewrite). Build: `npm run build`, output: `dist` — **без** same-origin прокси, возможен CORS.
-- **GitHub Pages**: вручную через `deploy.yml` → `workflow_dispatch` + `publish_pages=true`; `GITHUB_PAGES=true` при сборке.
+- **GitHub Pages**: `deploy-pages.yml` (на каждый push в `main`) → https://aistocksearch.github.io/green-api-max-chat/ (демо: `?demo=active`, руководство: `guide.html`). Без прокси — live-запросы к API могут упираться в CORS.
 
 ### Ссылка на деплой
 
