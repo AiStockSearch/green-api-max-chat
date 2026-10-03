@@ -154,3 +154,30 @@ export async function sendAuthorizationPassword(
   })
   return data ?? {}
 }
+
+/** GET logout — разлогинить инстанс (нужно, если QR отвечает «Instance has auth. You need to make log out»). */
+export async function logoutInstance(credentials: GreenApiCredentials): Promise<boolean> {
+  const url = instancePath(credentials, 'logout')
+  const { data } = await requestJson<{ isLogout?: boolean }>(url, { method: 'GET' })
+  return Boolean(data?.isLogout)
+}
+
+export interface CheckWhatsappResponse {
+  existsWhatsapp?: boolean
+  /** lid найденного пользователя (…@lid) либо chatId по номеру */
+  chatId?: string
+  phoneNumber?: string
+}
+
+/** POST checkWhatsapp — проверка аккаунта WhatsApp и получение lid (WhatsApp). */
+export async function checkWhatsapp(
+  credentials: GreenApiCredentials,
+  chatId: string,
+): Promise<CheckWhatsappResponse> {
+  const url = instancePath(credentials, 'checkWhatsapp')
+  const { data } = await requestJson<CheckWhatsappResponse>(url, {
+    method: 'POST',
+    body: JSON.stringify({ chatId }),
+  })
+  return data ?? {}
+}

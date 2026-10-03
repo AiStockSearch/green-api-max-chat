@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-describe('Вход инстанса → авторизация MAX', () => {
+describe('Вход инстанса → авторизация (MAX | WhatsApp по GREEN_API_MESSENGER)', () => {
   beforeEach(() => {
     cy.clearAllSessionStorage()
     cy.clearAllLocalStorage()

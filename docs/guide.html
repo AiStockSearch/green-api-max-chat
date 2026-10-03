@@ -109,6 +109,7 @@
     <li>Приём входящих текстовых сообщений опросом очереди <code>receiveNotification</code> / <code>deleteNotification</code>.</li>
     <li>Состояния ошибок: неверные ключи, неавторизованный инстанс, сеть/CORS, повтор неотправленного сообщения.</li>
     <li>Адаптивная вёрстка (мобильный список и чат), демо-режим без инстанса (<code>?demo=…</code>).</li>
+    <li><strong>Режим WhatsApp</strong> — ТЗ разрешает WhatsApp или Telegram, если MAX недоступен. Переключатель «Мессенджер: MAX / WhatsApp» на экране входа (по умолчанию MAX).</li>
   </ul>
   <div class="note"><strong>Ограничения:</strong> только текст (медиа и статусы доставки не отображаются); чаты и сообщения хранятся локально в браузере; один активный опрос на вкладку — при нескольких вкладках возможны конфликты очереди.</div>
   <figure><img src="screenshots/04-active-chat.png" alt="Активный чат" loading="lazy"><figcaption>Рис. 1. Активный чат (демо-данные, <code>?demo=active</code>).</figcaption></figure>
@@ -119,7 +120,7 @@
   <h2><span class="num">2</span>Создание инстанса MAX в консоли GREEN-API</h2>
   <ol class="substeps">
     <li>Зарегистрируйтесь или войдите в личный кабинет <a href="https://console.green-api.com" target="_blank" rel="noreferrer">console.green-api.com</a>. Публичного API для регистрации конечного пользователя нет — только через сайт (в приложении это поясняет экран «Регистрация»).</li>
-    <li>Нажмите «Создать инстанс» и выберите мессенджер <strong>MAX</strong>.</li>
+    <li>Нажмите «Создать инстанс» и выберите мессенджер <strong>MAX</strong>. Если тариф MAX недоступен, создайте инстанс <strong>WhatsApp</strong> (есть бесплатный Developer) — в приложении для него есть отдельный режим (шаг 6).</li>
     <li>Выберите тариф. Бесплатный инстанс <em>Developer</em> подходит для проверки, но <strong>может работать с ограничениями</strong> (лимиты на количество запросов/чатов).</li>
     <li>Откройте карточку инстанса и скопируйте три значения:
       <table>
@@ -147,10 +148,11 @@
   <ol class="substeps">
     <li><strong>Вариант А — в приложении.</strong> Войдите с ключами инстанса (шаг 6). Если <code>getStateInstance</code> вернёт <code>notAuthorized</code> или <code>starting</code>, откроется экран «Авторизация инстанса MAX» с QR-кодом (метод <code>qr</code>). QR обновляется каждые 5 с, состояние опрашивается каждые 3 с. Есть ссылка «Открыть qr.green-api.com».</li>
     <li><strong>Вариант Б — в консоли.</strong> Откройте карточку инстанса на console.green-api.com и отсканируйте QR там.</li>
-    <li>В мобильном приложении <strong>MAX</strong> откройте сканер QR (раздел подключения устройств) и отсканируйте код.</li>
+    <li>В мобильном приложении <strong>MAX</strong> откройте сканер QR (раздел подключения устройств) и отсканируйте код. Для <strong>WhatsApp</strong>: «Настройки → Связанные устройства → Привязка устройства».</li>
     <li>Если на аккаунте включена двухфакторная защита, состояние станет <code>pendingPassword</code> — введите пароль в поле «Пароль 2FA MAX» (метод <code>sendAuthorizationPassword</code>).</li>
     <li>Дождитесь статуса <strong>«Авторизован»</strong> (<code>authorized</code>) — приложение само перейдёт к чатам.</li>
   </ol>
+  <div class="note"><strong>WhatsApp:</strong> ссылка ведёт на <code>qr.green-api.com/waInstance{id}/{token}</code> (без <code>/v3</code>). Если метод <code>qr</code> отвечает ошибкой «Instance has auth. You need to make log out», на экране появится кнопка «Logout инстанса и новый QR» (метод <code>logout</code>). Пароля 2FA у WhatsApp нет.</div>
   <div class="note">Методы <code>getAuthorizationCode</code> / вход по коду из SMS для MAX не поддерживаются — только QR (+ 2FA-пароль). Состояние <code>blocked</code> отображается как «Аккаунт MAX заблокирован».</div>
   <figure><img src="screenshots/15-instance-qr-auth.png" alt="Экран авторизации по QR" loading="lazy"><figcaption>Рис. 4. Экран авторизации инстанса MAX по QR (<code>?demo=instance-qr</code>).</figcaption></figure>
 </section>
@@ -183,7 +185,7 @@ npm run dev</code></pre>
     <tr><td><code>register</code>, <code>partner</code>, <code>create-instance</code>, <code>instance-qr</code></td><td>Экраны аккаунта: регистрация, инстансы партнёра, createInstance, QR</td></tr>
   </table>
   <h3>Прокси Vite и CORS</h3>
-  <p>Браузер может блокировать прямые запросы к GREEN-API политикой CORS. В режиме <code>npm run dev</code> клиент автоматически переписывает URL на same-origin путь <code>/green-api-proxy/{host}/…</code>, а прокси Vite (<code>vite.config.ts</code>) пересылает запрос на <code>https://{host}/…</code>. Разрешены только хосты <code>*.api.green-api.com</code>, <code>*.api.greenapi.com</code>, <code>api.green-api.com</code>, <code>api.greenapi.com</code> (см. <code>src/api/devProxy.ts</code>).</p>
+  <p>Браузер может блокировать прямые запросы к GREEN-API политикой CORS. В режиме <code>npm run dev</code> клиент автоматически переписывает URL на same-origin путь <code>/green-api-proxy/{host}/…</code> (или <code>/green-api-proxy/{шард}/…</code> для <code>{шард}.api.greenapi.com</code>), а middleware-плагин в <code>vite.config.ts</code> пересылает запрос на <code>https://{host}/…</code>; запросы к другим хостам получают 403. Разрешены только хосты <code>*.api.green-api.com</code>, <code>*.api.greenapi.com</code>, <code>api.green-api.com</code>, <code>api.greenapi.com</code> (см. <code>src/api/devProxy.ts</code>).</p>
   <div class="warn">Обычная статическая сборка (<code>npm run build</code> без <code>VITE_GREEN_API_SAME_ORIGIN_PROXY=true</code>) ходит в API напрямую — на Vercel/GitHub Pages возможны ошибки CORS. Для production используйте Docker (шаг 5) или свой backend-прокси.</div>
 </section>
 
@@ -213,6 +215,8 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
     <li>Поле <strong>API URL</strong> необязательно (по умолчанию <code>https://api.green-api.com</code>), но лучше указать <code>apiUrl</code> из карточки инстанса.</li>
     <li>Нажмите «Войти». Приложение вызывает <code>getStateInstance</code>: при <code>authorized</code> открываются чаты, иначе — экран QR (шаг 3).</li>
   </ol>
+  <h3>Мессенджер: MAX или WhatsApp</h3>
+  <p>Над полем idInstance — переключатель «Мессенджер». По умолчанию <strong>MAX</strong>. Для инстанса WhatsApp выберите <strong>WhatsApp</strong>: выбор сохраняется вместе с ключами, а заголовки, подсказки, формат chatId, ссылка на QR и разбор уведомлений переключаются на WhatsApp. В Partner API мессенджер берётся из <code>typeInstance</code> инстанса.</p>
   <h3>Режим «Партнёр»</h3>
   <ol class="substeps">
     <li>Введите <code>partnerToken</code> (<code>gac.…</code>) и <code>partnerApiUrl</code>; нажмите «Продолжить» — выполняется <code>getInstances</code>.</li>
@@ -239,7 +243,8 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
         <li>строка с <code>@</code> или начинающаяся с <code>-</code> — используется как chatId без изменений;</li>
         <li>5–9 цифр — числовой ID личного чата MAX;</li>
         <li>10–15 цифр — номер телефона, превращается в <code>{цифры}@c.us</code>.</li>
-      </ul></li>
+      </ul>
+      В режиме <strong>WhatsApp</strong> (<code>src/api/whatsapp.ts</code>): номер → <code>{цифры}@c.us</code>, допускаются готовые <code>…@c.us</code>, <code>…@g.us</code> (группа) и <code>…@lid</code>; короткие числовые ID, как в MAX, не принимаются. Перед созданием чата вызывается <code>checkWhatsapp</code>: если номера нет в WhatsApp — ошибка, а если API вернул lid (<code>…@lid</code>), он сохраняется как алиас чата, и ответы с lid попадают в тот же диалог.</li>
     <li>Напишите текст и отправьте: <kbd>Enter</kbd> — отправка, <kbd>Shift</kbd>+<kbd>Enter</kbd> — новая строка. Используется <code>POST sendMessage</code>; при ошибке сообщение помечается как неотправленное с кнопкой «Повторить».</li>
     <li>Ответ собеседника из MAX появится в чате автоматически.</li>
   </ol>
@@ -247,6 +252,7 @@ docker run --rm -p 8080:8080 green-api-max-chat:local</code></pre></li>
   <ol class="substeps">
     <li>После входа в фоне крутится цикл: <code>GET receiveNotification</code> с таймаутом 5 с (long polling).</li>
     <li>Если уведомление — <code>incomingMessageReceived</code> с <code>typeMessage = textMessage</code>, текст добавляется в чат с совпадающим chatId (<code>79990000000@c.us</code> и <code>79990000000</code> считаются одним чатом).</li>
+    <li>В режиме WhatsApp также разбираются <code>extendedTextMessage</code> / <code>quotedMessage</code> (текст в <code>extendedTextMessageData.text</code>) и исходящие <code>outgoingMessageReceived</code> (отправлено с телефона) и <code>outgoingAPIMessageReceived</code> (через API) — они показываются как исходящие, дубли по <code>idMessage</code> отбрасываются.</li>
     <li>Любое полученное уведомление (включая прочие типы) подтверждается <code>DELETE deleteNotification/{receiptId}</code>, чтобы очередь не застревала.</li>
     <li>При ошибке опроса показывается баннер и через 3 с выполняется повтор.</li>
   </ol>
@@ -300,6 +306,7 @@ npm run build     # tsc -b &amp;&amp; vite build</code></pre>
   <ol class="substeps">
     <li>Скопируйте <code>cypress.env.example.json</code> → <code>cypress.env.json</code> (файл в <code>.gitignore</code>, не коммитится):
 <pre><code>{
+  "messenger": "max",
   "idInstance": "1101000001",
   "apiTokenInstance": "YOUR_API_TOKEN",
   "apiUrl": "https://1101.api.green-api.com",
@@ -312,7 +319,8 @@ npm run build     # tsc -b &amp;&amp; vite build</code></pre>
     <li>Для <code>05</code> нужен <code>chatId</code> и <strong>авторизованный</strong> инстанс. Чтобы проверить входящее в UI, во время прогона (~2 мин) отправьте из MAX на инстанс текст <code>e2e-in-…</code> из лога Cypress, либо задайте <code>incomingMarker</code> и <code>requireIncoming: true</code>.</li>
   </ol>
   <h3>Секреты для CI</h3>
-  <p>В <em>Settings → Secrets and variables → Actions</em> репозитория: <code>GREEN_API_ID_INSTANCE</code>, <code>GREEN_API_TOKEN</code>, <code>GREEN_API_URL</code>, опционально <code>GREEN_API_CHAT_ID</code>. Workflow сам собирает из них <code>cypress.env.json</code>. Без первых трёх live-specs пропускаются.</p>
+  <p>Мессенджер для live-specs: поле <code>messenger</code> (<code>max</code> | <code>whatsapp</code>) или переменная окружения <code>GREEN_API_MESSENGER</code> — Cypress выберет его на экране входа.</p>
+  <p>В <em>Settings → Secrets and variables → Actions</em> репозитория: <code>GREEN_API_ID_INSTANCE</code>, <code>GREEN_API_TOKEN</code>, <code>GREEN_API_URL</code>, опционально <code>GREEN_API_CHAT_ID</code> и <code>GREEN_API_MESSENGER</code> (variable или secret). Workflow сам собирает из них <code>cypress.env.json</code>. Без первых трёх live-specs пропускаются.</p>
 </section>
 
 <!-- 10 -->
@@ -348,6 +356,10 @@ npm run build     # tsc -b &amp;&amp; vite build</code></pre>
     <p>Входящее показывается в чате с совпадающим chatId. Для MAX собеседник может прийти с числовым ID — создайте чат с этим ID.</p></details>
   <details><summary>Экран QR не исчезает</summary>
     <p>Сканируйте код в мобильном приложении MAX; QR обновляется каждые 5 с — используйте актуальный. Если требуется пароль 2FA — введите его. При <code>blocked</code> — разберитесь с аккаунтом MAX; при необходимости перезагрузите инстанс в консоли.</p></details>
+  <details><summary>Нет тарифа MAX — можно ли сдать на WhatsApp?</summary>
+    <p>Да, ТЗ допускает WhatsApp или Telegram при недоступности MAX. Создайте бесплатный WhatsApp Developer-инстанс и на экране входа выберите «Мессенджер → WhatsApp».</p></details>
+  <details><summary>WhatsApp: ответ пришёл отдельным чатом с id вида …@lid</summary>
+    <p>Это lid — системный идентификатор WhatsApp. Приложение связывает его с чатом по номеру через <code>checkWhatsapp</code> при создании чата. Если чат создан до этого (или lid сменился), создайте чат заново по номеру.</p></details>
   <details><summary>Developer-инстанс ведёт себя ограниченно</summary>
     <p>Бесплатный тариф имеет лимиты. Для полноценной проверки используйте платный инстанс или учитывайте ограничения.</p></details>
   <details><summary>Live Cypress пропущен в CI</summary>

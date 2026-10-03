@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { deleteNotification, receiveNotification } from '../api/greenApi'
-import { parseIncomingTextMessage } from '../api/notifications'
-import type { GreenApiCredentials, ParsedIncomingTextMessage } from '../api/types'
+import { parseNotificationFor } from '../api/messengerAdapter'
+import type { GreenApiCredentials, ParsedChatMessage } from '../api/types'
 import { GreenApiError } from '../api/types'
 
 interface Options {
   credentials: GreenApiCredentials | null
   enabled: boolean
-  onMessage: (message: ParsedIncomingTextMessage) => void
+  onMessage: (message: ParsedChatMessage) => void
   onError: (error: string) => void
 }
 
@@ -59,7 +59,7 @@ export function useNotificationPolling({
             continue
           }
 
-          const parsed = parseIncomingTextMessage(notification.body)
+          const parsed = parseNotificationFor(credentials, notification.body)
           if (parsed) {
             onMessageRef.current(parsed)
           }

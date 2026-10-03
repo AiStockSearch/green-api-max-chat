@@ -119,7 +119,8 @@ Cypress.Commands.add('loginToChatLayout', () => {
 })
 
 Cypress.Commands.add('openLiveChat', (chatId: string) => {
-  const dial = String(chatId).replace(/\D/g, '')
+  // @g.us (группа WhatsApp) вводим как есть, иначе — только цифры номера / ID MAX
+  const dial = String(chatId).includes('@g.us') ? '' : String(chatId).replace(/\D/g, '')
   cy.get('body').then(($body) => {
     if ($body.find('[data-ui="active-chat"]').length > 0) {
       return

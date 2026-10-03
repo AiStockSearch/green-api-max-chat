@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { MESSENGER_LABELS, type Messenger } from '../api/messenger'
 import { Icon } from './Icon'
 import styles from './NewChatPanel.module.css'
 
@@ -9,9 +10,19 @@ interface Props {
   onSubmit: (e: FormEvent) => void
   onClose: () => void
   error: string | null
+  messenger?: Messenger
 }
 
-export function NewChatPanel({ open, value, onChange, onSubmit, onClose, error }: Props) {
+export function NewChatPanel({
+  open,
+  value,
+  onChange,
+  onSubmit,
+  onClose,
+  error,
+  messenger = 'max',
+}: Props) {
+  const isWhatsApp = messenger === 'whatsapp'
   if (!open) {
     return null
   }
@@ -72,7 +83,9 @@ export function NewChatPanel({ open, value, onChange, onSubmit, onClose, error }
             </div>
             <div className={styles.fieldHint}>
               <Icon name="info" size="sm" />
-              Введите номер в формате +7XXXXXXXXXX
+              {isWhatsApp
+                ? 'Номер в международном формате (например +79990000000) или chatId …@c.us / …@g.us'
+                : 'Введите номер в формате +7XXXXXXXXXX'}
             </div>
           </div>
 
@@ -80,7 +93,7 @@ export function NewChatPanel({ open, value, onChange, onSubmit, onClose, error }
             <span className={styles.channelLabel}>Канал отправки:</span>
             <span className={styles.channelBadge}>
               <span className={styles.channelDot} />
-              MAX · GREEN-API
+              {MESSENGER_LABELS[messenger]} · GREEN-API
             </span>
           </div>
 

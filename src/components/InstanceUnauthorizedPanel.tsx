@@ -1,3 +1,4 @@
+import { messengerLabel } from '../api/messenger'
 import type { GreenApiCredentials } from '../api/types'
 import { Icon } from './Icon'
 import styles from './InstanceUnauthorizedPanel.module.css'
@@ -25,7 +26,7 @@ export function InstanceUnauthorizedPanel({
           <div className={styles.iconBox}>
             <Icon name="warning" size="lg" />
           </div>
-          <h2 className={styles.title}>Инстанс не авторизован в MAX</h2>
+          <h2 className={styles.title}>Инстанс не авторизован в {messengerLabel(credentials)}</h2>
           <p className={styles.desc}>
             Инстанс GREEN-API подключён, но не имеет активной сессии или требует повторной
             авторизации в мессенджере.

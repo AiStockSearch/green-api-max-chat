@@ -44,4 +44,20 @@ describe('resolveDevProxyBase', () => {
       'http://127.0.0.1:43123/green-api-proxy/7107/waInstance1/getStateInstance/token',
     )
   })
+
+  it('WhatsApp-хосты: *.api.green-api.com и api.greenapi.com проходят через прокси', async () => {
+    vi.stubEnv('DEV', true)
+    vi.stubEnv('MODE', 'development')
+    vi.stubGlobal('window', {
+      location: { origin: 'http://127.0.0.1:43123', hostname: '127.0.0.1', port: '43123' },
+    })
+    const { resolveDevProxyFetchUrl } = await import('./devProxy')
+    expect(
+      resolveDevProxyFetchUrl('https://7107.api.green-api.com/waInstance1/qr/token'),
+    ).toBe('http://127.0.0.1:43123/green-api-proxy/7107.api.green-api.com/waInstance1/qr/token')
+    expect(resolveDevProxyFetchUrl('https://api.greenapi.com/waInstance1/logout/token')).toBe(
+      'http://127.0.0.1:43123/green-api-proxy/api.greenapi.com/waInstance1/logout/token',
+    )
+    expect(resolveDevProxyFetchUrl('https://evil.example.com/x')).toBe('https://evil.example.com/x')
+  })
 })

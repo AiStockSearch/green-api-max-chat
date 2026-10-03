@@ -1,8 +1,12 @@
+import type { Messenger } from './messenger'
+
 export interface GreenApiCredentials {
   idInstance: string
   apiTokenInstance: string
   /** Host API from личного кабинета, например https://3100.api.green-api.com */
   apiUrl: string
+  /** Мессенджер инстанса; отсутствует в старых сессиях → MAX. */
+  messenger?: Messenger
 }
 
 export interface SendMessageResponse {
@@ -30,6 +34,10 @@ export interface IncomingWebhookBody {
     textMessageData?: {
       textMessage?: string
     }
+    /** WhatsApp: extendedTextMessage / quotedMessage */
+    extendedTextMessageData?: {
+      text?: string
+    }
   }
 }
 
@@ -42,11 +50,23 @@ export interface ParsedIncomingTextMessage {
   incoming: true
 }
 
+/** Текстовое сообщение из очереди уведомлений (входящее или исходящее). */
+export interface ParsedChatMessage {
+  chatId: string
+  text: string
+  idMessage?: string
+  timestamp?: number
+  senderName?: string
+  direction: 'incoming' | 'outgoing'
+}
+
 export interface Chat {
   id: string
   chatId: string
   title: string
   phone?: string
+  /** Альтернативные chatId того же собеседника (WhatsApp: …@lid из CheckWhatsapp). */
+  aliases?: string[]
   createdAt: number
 }
 

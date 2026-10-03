@@ -1,7 +1,15 @@
+export type MessengerEnv = 'max' | 'whatsapp'
+
 export interface InstanceCredentialsEnv {
   idInstance: string
   apiTokenInstance: string
   apiUrl: string
+  /** cypress.env `messenger` или GREEN_API_MESSENGER (max|whatsapp), по умолчанию max */
+  messenger: MessengerEnv
+}
+
+export function parseMessengerEnv(raw: unknown): MessengerEnv {
+  return String(raw ?? '').trim().toLowerCase() === 'whatsapp' ? 'whatsapp' : 'max'
 }
 
 declare global {
@@ -14,7 +22,7 @@ declare global {
   }
 }
 
-const CREDENTIAL_KEYS = ['idInstance', 'apiTokenInstance', 'apiUrl'] as const
+const CREDENTIAL_KEYS = ['idInstance', 'apiTokenInstance', 'apiUrl', 'messenger'] as const
 
 function readInstanceCredentials(): Cypress.Chainable<InstanceCredentialsEnv> {
   return cy.env([...CREDENTIAL_KEYS]).then((env) => {
@@ -28,6 +36,7 @@ function readInstanceCredentials(): Cypress.Chainable<InstanceCredentialsEnv> {
       idInstance: String(idInstance),
       apiTokenInstance: String(apiTokenInstance),
       apiUrl: String(apiUrl),
+      messenger: parseMessengerEnv(env.messenger),
     }
   })
 }
@@ -47,10 +56,11 @@ Cypress.Commands.add('getStateInstanceViaProxy', () => {
 
 Cypress.Commands.add('loginInstance', (options = {}) => {
   const remember = options.remember ?? false
-  readInstanceCredentials().then(({ idInstance, apiTokenInstance, apiUrl }) => {
+  readInstanceCredentials().then(({ idInstance, apiTokenInstance, apiUrl, messenger }) => {
     cy.visit('/')
     cy.get('[data-ui="login-screen"]').should('be.visible')
     cy.get('[data-cy="mode-instance"]').click()
+    cy.get(`[data-cy="messenger-${messenger}"]`).click()
     cy.get('#idInstance').clear().type(idInstance)
     cy.get('#apiTokenInstance').clear().type(apiTokenInstance, { log: false })
     cy.get('#apiUrl').clear().type(String(apiUrl), { delay: 0 })

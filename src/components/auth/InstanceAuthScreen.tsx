@@ -6,13 +6,20 @@ import {
   resolveAuthPhase,
   shouldContinueStatePolling,
 } from '../../api/instanceAuthPolling'
+import { getMessenger, MESSENGER_LABELS } from '../../api/messenger'
+import { qrPageUrlFor } from '../../api/messengerAdapter'
+import { qrErrorNeedsLogout } from '../../api/whatsapp'
 import {
-  buildQrPageUrl,
   parseQrResponse,
   qrDataUrlFromMessage,
   isQrAlreadyAuthorized,
 } from '../../api/qrAuth'
-import { fetchInstanceQr, getStateInstance, sendAuthorizationPassword } from '../../api/greenApi'
+import {
+  fetchInstanceQr,
+  getStateInstance,
+  logoutInstance,
+  sendAuthorizationPassword,
+} from '../../api/greenApi'
 import { isInstanceAuthorized, parseStateInstance } from '../../api/instanceState'
 import type { GreenApiCredentials } from '../../api/types'
 import { isDemoMode } from '../../demo/demoMode'
@@ -38,12 +45,17 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [submittingPassword, setSubmittingPassword] = useState(false)
   const authorizedOnce = useRef(false)
+  const messenger = getMessenger(credentials)
+  const label = MESSENGER_LABELS[messenger]
+  const isWhatsApp = messenger === 'whatsapp'
+  const [needsLogout, setNeedsLogout] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const refreshState = useCallback(async () => {
     if (isDemoMode()) {
       setPhase('qr')
       setQrSrc(DEMO_QR)
-      setStatusText('Демо: отсканируйте QR в MAX (реальный вызов QR/getStateInstance).')
+      setStatusText(`Демо: отсканируйте QR в ${label} (реальный вызов QR/getStateInstance).`)
       return
     }
     try {
@@ -61,15 +73,15 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
       if (next === 'pending_password') {
         setStatusText('Требуется пароль 2FA (SendAuthorizationPassword)')
       } else if (next === 'blocked') {
-        setStatusText('Аккаунт MAX заблокирован (stateInstance: blocked)')
+        setStatusText(`Аккаунт ${label} заблокирован (stateInstance: blocked)`)
       } else if (next === 'qr') {
-        setStatusText('Отсканируйте QR-код в приложении MAX')
+        setStatusText(`Отсканируйте QR-код в приложении ${label}`)
       }
     } catch (err) {
       setPhase('error')
       setStatusText(err instanceof Error ? err.message : 'Ошибка getStateInstance')
     }
-  }, [credentials, onAuthorized])
+  }, [credentials, label, onAuthorized])
 
   const refreshQr = useCallback(async () => {
     if (isDemoMode()) {
@@ -88,14 +100,16 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
         return
       }
       if (parsed.type === 'qrCode') {
+        setNeedsLogout(false)
         setQrSrc(qrDataUrlFromMessage(parsed.message))
       } else if (parsed.type === 'error') {
         setStatusText(parsed.message || 'Ошибка QR')
+        setNeedsLogout(isWhatsApp && qrErrorNeedsLogout(parsed.message))
       }
     } catch (err) {
       setStatusText(err instanceof Error ? err.message : 'Не удалось получить QR')
     }
-  }, [credentials, refreshState])
+  }, [credentials, isWhatsApp, refreshState])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -150,7 +164,21 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
     }
   }
 
-  const qrPage = buildQrPageUrl(credentials)
+  const handleLogoutInstance = async () => {
+    setLoggingOut(true)
+    try {
+      await logoutInstance(credentials)
+      setNeedsLogout(false)
+      setStatusText('Logout выполнен — получаем новый QR…')
+      void refreshQr()
+    } catch (err) {
+      setStatusText(err instanceof Error ? err.message : 'Ошибка Logout')
+    } finally {
+      setLoggingOut(false)
+    }
+  }
+
+  const qrPage = qrPageUrlFor(credentials)
 
   return (
     <div className={styles.page} data-ui="instance-auth">
@@ -159,7 +187,7 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
         <div className={styles.card}>
           <header className={styles.head}>
             <div>
-              <h1 className={styles.title}>Авторизация инстанса MAX</h1>
+              <h1 className={styles.title}>Авторизация инстанса {label}</h1>
               <p className={styles.sub}>
                 idInstance {credentials.idInstance} · опрос getStateInstance
               </p>
@@ -177,7 +205,7 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
               {qrSrc ? (
                 <img
                   src={qrSrc}
-                  alt="QR-код для авторизации MAX"
+                  alt={`QR-код для авторизации ${label}`}
                   className={styles.qrImg}
                   data-cy="qr-image"
                 />
@@ -189,10 +217,28 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
               <a className={styles.qrLink} href={qrPage} target="_blank" rel="noreferrer">
                 Открыть qr.green-api.com
               </a>
-              <p className={styles.hint}>
-                Документация рекомендует обновлять QR каждые ~5 сек. Для MAX: QR +
-                SendAuthorizationPassword при stateInstance pendingPassword.
-              </p>
+              {isWhatsApp ? (
+                <p className={styles.hint}>
+                  WhatsApp: телефон → «Связанные устройства» → «Привязка устройства», отсканируйте
+                  QR. Код обновляется автоматически.
+                </p>
+              ) : (
+                <p className={styles.hint}>
+                  Документация рекомендует обновлять QR каждые ~5 сек. Для MAX: QR +
+                  SendAuthorizationPassword при stateInstance pendingPassword.
+                </p>
+              )}
+              {needsLogout && (
+                <button
+                  type="button"
+                  className={styles.primaryBtn}
+                  data-cy="logout-instance"
+                  disabled={loggingOut}
+                  onClick={() => void handleLogoutInstance()}
+                >
+                  {loggingOut ? 'Logout…' : 'Logout инстанса и новый QR'}
+                </button>
+              )}
             </div>
           )}
 
@@ -216,7 +262,7 @@ export function InstanceAuthScreen({ credentials, onAuthorized, onBack }: Props)
 
           {phase === 'blocked' && (
             <p className={styles.error}>
-              Инстанс заблокирован. См. getStateInstance: blocked в документации MAX.
+              Инстанс заблокирован. См. getStateInstance: blocked в документации {label}.
             </p>
           )}
 

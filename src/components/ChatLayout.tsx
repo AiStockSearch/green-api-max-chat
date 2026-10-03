@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { canRetryMessage, classifyPollError } from '../api/errorMapping'
-import { chatTitleFromInput, resolveChatId } from '../api/chatId'
-import { getStateInstance, sendMessage } from '../api/greenApi'
+import { chatTitleFromInput } from '../api/chatId'
+import { getMessenger, messengerLabel } from '../api/messenger'
+import { resolveChatIdFor } from '../api/messengerAdapter'
+import { checkWhatsapp, getStateInstance, sendMessage } from '../api/greenApi'
+import { aliasesFromCheckWhatsapp, chatMatchesId } from '../api/whatsapp'
 import {
   isInstanceAuthorized,
   isInstanceUnauthorized,
@@ -12,7 +15,7 @@ import { chatIdsMatch } from '../api/notifications'
 import type {
   Chat,
   GreenApiCredentials,
-  ParsedIncomingTextMessage,
+  ParsedChatMessage,
   StoredMessage,
 } from '../api/types'
 import { GreenApiError } from '../api/types'
@@ -68,6 +71,8 @@ export function ChatLayout({
   defaultSelectedChatId,
 }: Props) {
   const demoVariant = getDemoVariant()
+  const channel = messengerLabel(credentials)
+  const isWhatsApp = getMessenger(credentials) === 'whatsapp'
   const [selectedChatId, setSelectedChatId] = useState<string | null>(
     () => defaultSelectedChatId ?? chats[0]?.id ?? null,
   )
@@ -282,8 +287,11 @@ export function ChatLayout({
   }
 
   const handleIncoming = useCallback(
-    (incoming: ParsedIncomingTextMessage) => {
+    (incoming: ParsedChatMessage) => {
       onPollError(null)
+      const existing = chats.find((c) => chatMatchesId(c, incoming.chatId, chatIdsMatch))
+      // Сообщение кладём в основной chatId чата (WhatsApp @lid → чат по номеру)
+      const targetChatId = existing?.chatId ?? incoming.chatId
       onMessagesChange((prev) => {
         if (
           incoming.idMessage &&
@@ -295,17 +303,17 @@ export function ChatLayout({
           ...prev,
           {
             id: newId(),
-            chatId: incoming.chatId,
+            chatId: targetChatId,
             text: incoming.text,
             timestamp: incoming.timestamp ?? Date.now(),
-            direction: 'incoming',
+            direction: incoming.direction,
             idMessage: incoming.idMessage,
+            ...(incoming.direction === 'outgoing' ? { status: 'sent' as const } : {}),
           },
         ]
       })
 
-      const hasChat = chats.some((c) => chatIdsMatch(c.chatId, incoming.chatId))
-      if (!hasChat) {
+      if (!existing) {
         const chat: Chat = {
           id: newId(),
           chatId: incoming.chatId,
@@ -331,22 +339,37 @@ export function ChatLayout({
     setNewChatInput('')
   }
 
-  const handleCreateChat = (e: FormEvent) => {
+  const handleCreateChat = async (e: FormEvent) => {
     e.preventDefault()
     setCreateError(null)
     try {
-      const chatId = resolveChatId(newChatInput)
-      const duplicate = chats.find((c) => chatIdsMatch(c.chatId, chatId))
+      const chatId = resolveChatIdFor(credentials, newChatInput)
+      const duplicate = chats.find((c) => chatMatchesId(c, chatId, chatIdsMatch))
       if (duplicate) {
         selectChat(duplicate.id)
         closeNewChat()
         return
+      }
+      let aliases: string[] = []
+      if (isWhatsApp && !isDemoMode() && !chatId.endsWith('@g.us')) {
+        // CheckWhatsapp: наличие аккаунта и lid, чтобы ответы с …@lid попали в этот чат
+        try {
+          const check = await checkWhatsapp(credentials, chatId)
+          if (check.existsWhatsapp === false) {
+            setCreateError('Номер не зарегистрирован в WhatsApp (CheckWhatsapp)')
+            return
+          }
+          aliases = aliasesFromCheckWhatsapp(chatId, check)
+        } catch {
+          /* CheckWhatsapp необязателен: создаём чат без алиасов */
+        }
       }
       const chat: Chat = {
         id: newId(),
         chatId,
         title: chatTitleFromInput(newChatInput, chatId),
         phone: newChatInput.trim(),
+        ...(aliases.length ? { aliases } : {}),
         createdAt: Date.now(),
       }
       onChatsChange([chat, ...chats])
@@ -423,7 +446,7 @@ export function ChatLayout({
                 <Icon name="chat" filled />
               </div>
               <div>
-                <div className={styles.brandTitle}>GREEN-API MAX</div>
+                <div className={styles.brandTitle}>GREEN-API {channel}</div>
                 <div className={styles.onlineRow}>
                   <span className={styles.onlineDot} style={{ background: '#fa8c16' }} />
                   Не авторизован
@@ -463,7 +486,7 @@ export function ChatLayout({
               <Icon name="chat" filled />
             </div>
             <div>
-              <div className={styles.brandTitle}>GREEN-API MAX</div>
+              <div className={styles.brandTitle}>GREEN-API {channel}</div>
               <div className={styles.onlineRow}>
                 <span className={styles.onlineDot} />
                 В сети
@@ -609,7 +632,7 @@ export function ChatLayout({
             <h2 className={styles.emptyTitle}>Выберите чат или создайте новый</h2>
             <p className={styles.emptyText}>
               Отправляйте сообщения и получайте ответы через надёжный шлюз GREEN-API для
-              мессенджера MAX.
+              мессенджера {channel}.
             </p>
             <button type="button" className={styles.emptyCta} onClick={() => setNewChatOpen(true)}>
               <Icon name="add" size="sm" />
@@ -646,7 +669,7 @@ export function ChatLayout({
                 <div className={styles.headerAvatar}>{avatarLabel(selectedChat.title)}</div>
                 <div>
                   <h2 className={styles.chatHeaderName}>{selectedChat.title}</h2>
-                  <p className={styles.chatHeaderMeta}>MAX · GREEN-API • В сети</p>
+                  <p className={styles.chatHeaderMeta}>{channel} · GREEN-API • В сети</p>
                 </div>
               </div>
               <div className={styles.headerActions}>
@@ -783,10 +806,11 @@ export function ChatLayout({
       </main>
 
       <NewChatPanel
+        messenger={getMessenger(credentials)}
         open={newChatOpen}
         value={newChatInput}
         onChange={setNewChatInput}
-        onSubmit={handleCreateChat}
+        onSubmit={(e) => void handleCreateChat(e)}
         onClose={closeNewChat}
         error={createError}
       />

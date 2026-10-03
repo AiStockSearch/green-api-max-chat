@@ -9,7 +9,9 @@ import type { PartnerCredentials } from '../api/partnerApi'
 import { getInstances } from '../api/partnerApi'
 import type { GreenApiCredentials } from '../api/types'
 import { GreenApiError } from '../api/types'
+import { DEFAULT_MESSENGER, MESSENGER_LABELS, type Messenger } from '../api/messenger'
 import { AccountModeSwitcher, type AccountMode } from './auth/AccountModeSwitcher'
+import { MessengerSwitcher } from './auth/MessengerSwitcher'
 import { HelpCredentialsModal } from './HelpCredentialsModal'
 import { Icon } from './Icon'
 import { SiteFooter } from './layout/SiteFooter'
@@ -42,6 +44,7 @@ export function LoginScreen({
   demoShowErrors,
 }: Props) {
   const [mode, setMode] = useState<AccountMode>(initialMode)
+  const [messenger, setMessenger] = useState<Messenger>(DEFAULT_MESSENGER)
   const [idInstance, setIdInstance] = useState(() =>
     demoShowErrors ? '1101823456' : '',
   )
@@ -69,6 +72,7 @@ export function LoginScreen({
       idInstance: idInstance.trim(),
       apiTokenInstance: apiTokenInstance.trim(),
       apiUrl: normalizeApiUrl(apiUrl),
+      messenger,
     }
     if (!credentials.idInstance || !credentials.apiTokenInstance) {
       setFieldErrors({
@@ -86,7 +90,7 @@ export function LoginScreen({
       await offerPasswordManagerSave({
         username: credentials.idInstance,
         password: credentials.apiTokenInstance,
-        name: 'GREEN-API MAX · инстанс',
+        name: `GREEN-API ${MESSENGER_LABELS[messenger]} · инстанс`,
       })
       onInstanceSuccess(credentials, remember, needsAuth)
     } catch (err) {
@@ -166,6 +170,17 @@ export function LoginScreen({
                   {fieldErrors.banner}
                 </div>
               )}
+
+              <div className={styles.field} data-cy="messenger-switcher">
+                <label>Мессенджер</label>
+                <MessengerSwitcher value={messenger} onChange={setMessenger} disabled={loading} />
+                {messenger === 'whatsapp' && (
+                  <p className={styles.hint}>
+                    WhatsApp — допустимый по ТЗ вариант, если MAX недоступен. Те же методы GREEN-API,
+                    chatId вида 79990000000@c.us.
+                  </p>
+                )}
+              </div>
 
               <div className={styles.field}>
                 <label htmlFor="idInstance">idInstance</label>

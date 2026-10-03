@@ -3,7 +3,8 @@
 /**
  * Live-цикл SendMessage + ReceiveNotification.
  * Требует: authorized инстанс, chatId в cypress.env.json.
- * Входящее в UI (опционально): во время прогона отправьте с MAX на инстанс текст marker.
+ * Входящее в UI (опционально): во время прогона отправьте с MAX/WhatsApp на инстанс текст marker.
+ * Мессенджер: cypress.env `messenger` или GREEN_API_MESSENGER (max|whatsapp).
  */
 describe('Live: SendMessage + ReceiveNotification', () => {
   beforeEach(() => {
@@ -14,14 +15,14 @@ describe('Live: SendMessage + ReceiveNotification', () => {
   before(function () {
     cy.env(['chatId']).then((env) => {
       if (!env.chatId) {
-        cy.log('Пропуск: задайте chatId в cypress.env.json (номер или chatId MAX)')
+        cy.log('Пропуск: задайте chatId в cypress.env.json (номер, chatId MAX или …@c.us)')
         this.skip()
       }
     })
     cy.getStateInstanceViaProxy().then((body) => {
       if (body.stateInstance !== 'authorized') {
         cy.log(
-          `Пропуск: инстанс не authorized (сейчас ${body.stateInstance}). Авторизуйте QR в MAX.`,
+          `Пропуск: инстанс не authorized (сейчас ${body.stateInstance}). Авторизуйте инстанс по QR.`,
         )
         this.skip()
       }
@@ -57,9 +58,10 @@ describe('Live: SendMessage + ReceiveNotification', () => {
 
     cy.apiPollAndDeleteAll(4)
 
-    cy.log(
-      `Для проверки входящего в UI отправьте с MAX на инстанс сообщение: ${incomingMarker}`,
-    )
+    cy.getInstanceCredentials().then(({ messenger }) => {
+      const label = messenger === 'whatsapp' ? 'WhatsApp' : 'MAX'
+      cy.log(`Для проверки входящего в UI отправьте с ${label} на инстанс сообщение: ${incomingMarker}`)
+    })
 
     cy.waitForIncomingMessage(incomingMarker, { timeoutMs: 120000 }).then((gotIncoming) => {
       if (Cypress.env('requireIncoming') === true) {

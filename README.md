@@ -8,7 +8,7 @@
 
 📘 **Пошаговое руководство (HTML):** [https://aistocksearch.github.io/green-api-max-chat/guide.html](https://aistocksearch.github.io/green-api-max-chat/guide.html) (исходник: [docs/guide.html](docs/guide.html)) — инстанс MAX, QR-авторизация, запуск локально и в Docker, тесты, CI/CD, FAQ.
 
-Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
+Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Если MAX недоступен, ТЗ допускает WhatsApp или Telegram — в приложении есть режим **WhatsApp** (переключатель «Мессенджер» на экране входа). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
 
 ## Стек
 
@@ -59,7 +59,7 @@ docker run --rm -p 8080:8080 green-api-max-chat:local
 Секреты инстанса (**не** в образ и **не** в git):
 
 - Локально Cypress: `cypress.env.json` (см. `cypress.env.example.json`)
-- GitHub Actions live E2E (опционально): `GREEN_API_ID_INSTANCE`, `GREEN_API_TOKEN`, `GREEN_API_URL`, опционально `GREEN_API_CHAT_ID`
+- GitHub Actions live E2E (опционально): `GREEN_API_ID_INSTANCE`, `GREEN_API_TOKEN`, `GREEN_API_URL`, опционально `GREEN_API_CHAT_ID` и `GREEN_API_MESSENGER` (`max` | `whatsapp`, variable или secret)
 
 > **Безопасность:** `apiTokenInstance` и `partnerToken` вводятся только в браузере или в CI-секретах. В Docker-образ попадает лишь собранный статический `dist/` — **токены в image не запекаются**.
 
@@ -89,12 +89,12 @@ npm run test:e2e
 ### Cypress (E2E с вашим инстансом)
 
 1. Скопируйте `cypress.env.example.json` → `cypress.env.json` (файл в `.gitignore`).
-2. Укажите `idInstance`, `apiTokenInstance`, `apiUrl` **как в кабинете** (например `https://7107.api.greenapi.com`). В `npm run dev` прокси включается автоматически.
+2. Укажите `idInstance`, `apiTokenInstance`, `apiUrl` **как в кабинете** (например `https://7107.api.greenapi.com`) и `messenger`: `max` (по умолчанию) или `whatsapp`. Переменная окружения `GREEN_API_MESSENGER=max|whatsapp` переопределяет значение из файла. В `npm run dev` прокси включается автоматически.
 3. Запуск: `npm run test:e2e` (поднимает Vite на порту **43128** и гоняет Cypress).
 
 Сценарии: live `getStateInstance`, UI-вход → экран QR, демо register/partner/instance-qr, **05-live-send-receive** (SendMessage API+UI, ReceiveNotification/delete, опционально входящее в UI).
 
-Для **05** нужны `chatId` (номер или ID чата MAX) и **`authorized`** инстанс. Входящее в UI: во время прогона (~2 мин) отправьте с MAX на инстанс текст `e2e-in-…` из лога Cypress, либо задайте `incomingMarker` и `requireIncoming: true`.
+Для **05** нужны `chatId` (номер, ID чата MAX или `79990000000@c.us` для WhatsApp) и **`authorized`** инстанс. Входящее в UI: во время прогона (~2 мин) отправьте с MAX на инстанс текст `e2e-in-…` из лога Cypress, либо задайте `incomingMarker` и `requireIncoming: true`.
 
 ## Учётные данные и «аккаунт» в приложении
 
@@ -153,11 +153,22 @@ npm run test:e2e
 1. Войти с `idInstance`, `apiTokenInstance` и при необходимости скорректировать `apiUrl`.
 2. Создать чат: номер телефона (`79991234567`) или готовый `chatId` (для MAX — числовой ID личного чата, либо `79001234567@c.us` по документации SendMessage).
 3. Отправить текст (**SendMessage**). Enter — отправка, Shift+Enter — новая строка.
-4. Ответ собеседника в MAX появится в чате после опроса очереди.
+4. Ответ собеседника в MAX (или WhatsApp) появится в чате после опроса очереди.
 
-## WhatsApp и другие мессенджеры
+## WhatsApp (фолбэк по ТЗ)
 
-Формат URL унифицирован: `{{apiUrl}}/waInstance{{idInstance}}/method/{{apiTokenInstance}}`. Достаточно указать **apiUrl** и учётные данные инстанса WhatsApp — логика отправки и опроса та же.
+ТЗ разрешает WhatsApp или Telegram, если MAX недоступен. На экране входа выберите **Мессенджер → WhatsApp**; выбор сохраняется вместе с ключами (`messenger` в sessionStorage/localStorage, старые сессии без поля считаются MAX).
+
+Методы GREEN-API те же, формат URL унифицирован: `{{apiUrl}}/waInstance{{idInstance}}/{method}/{{apiTokenInstance}}`. Отличия режима WhatsApp (`src/api/whatsapp.ts`, `src/api/messengerAdapter.ts`):
+
+| Что | MAX | WhatsApp |
+|-----|-----|----------|
+| chatId | номер → `…@c.us` или числовой ID чата | только `{номер}@c.us`, группа `…@g.us`, `…@lid` |
+| Новый чат | — | **CheckWhatsapp**: проверка аккаунта; если API вернул `…@lid`, он сохраняется как алиас чата, и ответы с lid попадают в тот же диалог |
+| Уведомления | `incomingMessageReceived` + `textMessage` | также `extendedTextMessage`/`quotedMessage` (`extendedTextMessageData.text`) и исходящие `outgoingMessageReceived` (с телефона) / `outgoingAPIMessageReceived` (через API) |
+| QR | `qr.green-api.com/waInstance{id}/{token}/v3`, 2FA `sendAuthorizationPassword` | `qr.green-api.com/waInstance{id}/{token}`; при ошибке QR «You need to make log out» — кнопка **Logout** и новый QR |
+
+Прокси (Vite в dev и nginx в Docker) пропускает те же хосты: `*.api.greenapi.com`, `*.api.green-api.com`, `api.green-api.com`, `api.greenapi.com`.
 
 ## Ограничения
 

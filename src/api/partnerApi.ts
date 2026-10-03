@@ -1,6 +1,7 @@
 import { DEFAULT_API_URL } from './constants'
 import { resolveDevProxyFetchUrl } from './devProxy'
 import { normalizeApiUrl } from './greenApi'
+import { messengerFromTypeInstance } from './messenger'
 import { GreenApiError } from './types'
 
 export interface PartnerCredentials {
@@ -150,6 +151,7 @@ export function instanceCredentialsFromCreate(
     idInstance: String(created.idInstance),
     apiTokenInstance: created.apiTokenInstance,
     apiUrl: normalizeApiUrl(created.apiUrl),
+    messenger: messengerFromTypeInstance(created.typeInstance),
   }
 }
 
@@ -161,5 +163,6 @@ export function instanceCredentialsFromPartnerRow(
     idInstance: String(row.idInstance),
     apiTokenInstance: row.apiTokenInstance,
     apiUrl: normalizeApiUrl(partnerApiUrl),
+    messenger: messengerFromTypeInstance(row.typeInstance),
   }
 }
