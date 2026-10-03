@@ -94,6 +94,15 @@ export function ChatLayout({
   const filterProfile = filter === 'all' ? null : (profiles.find((p) => p.id === filter) ?? null)
   const chats = visibleChats(allChats, filter, profiles)
   const channel = filterProfile ? adapterFor(filterProfile).label : 'все инстансы'
+  /** Шапка сайдбара: мессенджер выбранного инстанса или «Все чаты» в общем списке. */
+  const brandTitle = filterProfile ? channel : 'Все чаты'
+  const brandLogo = filterProfile ? (
+    <MessengerBadge messenger={getMessenger(filterProfile)} size="lg" />
+  ) : (
+    <div className={styles.logoGradient}>
+      <Icon name="forum" filled />
+    </div>
+  )
   const authorized = authorizedProfiles(profiles, states)
   const [newChatInstanceId, setNewChatInstanceId] = useState<string | null>(null)
   const [logoutError, setLogoutError] = useState<string | null>(null)
@@ -378,12 +387,10 @@ export function ChatLayout({
         <aside className={styles.sidebar}>
           <div className={styles.sidebarHead}>
             <div className={styles.brandBlock}>
-              <div className={styles.logoGradient}>
-                <Icon name="chat" filled />
-              </div>
+              {brandLogo}
               <div>
-                <div className={styles.brandTitle}>
-                  GREEN-API · {filterProfile ? channel : 'Все'}
+                <div className={styles.brandTitle} data-cy="chat-brand-title">
+                  {brandTitle}
                 </div>
                 <div className={styles.onlineRow}>
                   <span className={styles.onlineDot} style={{ background: '#fa8c16' }} />
@@ -425,11 +432,11 @@ export function ChatLayout({
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHead}>
           <div className={styles.brandBlock}>
-            <div className={styles.logoGradient}>
-              <Icon name="chat" filled />
-            </div>
+            {brandLogo}
             <div>
-              <div className={styles.brandTitle}>GREEN-API · {filterProfile ? channel : 'Все'}</div>
+              <div className={styles.brandTitle} data-cy="chat-brand-title">
+                {brandTitle}
+              </div>
               <div className={styles.onlineRow} data-cy="network-status">
                 <span
                   className={styles.onlineDot}

@@ -160,8 +160,8 @@ export function LoginScreen({
           )}
           <header className={styles.header}>
             <h1 className={styles.title}>{onCancel ? 'Добавить инстанс' : 'Вход'}</h1>
-            <p className={styles.subtitle}>
-              Ключи инстанса — в{' '}
+            <p className={styles.subtitle} data-cy="login-subtitle">
+              {mode === 'partner' ? 'Partner API — ключ в' : 'Ключи инстанса — в'}{' '}
               <a href="https://console.green-api.com" target="_blank" rel="noreferrer">
                 console.green-api.com
               </a>
