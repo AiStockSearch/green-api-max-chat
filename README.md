@@ -1,5 +1,10 @@
 # GREEN-API MAX Chat (тестовое задание)
 
+<!-- Badges (подставьте org/repo после публикации на GitHub) -->
+<!-- ![CI](https://github.com/ORG/REPO/actions/workflows/ci.yml/badge.svg) -->
+<!-- ![Deploy](https://github.com/ORG/REPO/actions/workflows/deploy.yml/badge.svg) -->
+<!-- ![GHCR](https://ghcr.io/ORG/REPO:latest) -->
+
 Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
 
 ## Стек
@@ -18,6 +23,49 @@ npm run dev
 
 Приложение откроется на `http://127.0.0.1:43123`.
 
+## Запуск в Docker
+
+Рекомендуемый **production**-вариант: статика + **nginx** с same-origin прокси `/green-api-proxy/*` (обход CORS без токенов в образе).
+
+```bash
+docker compose up --build
+# или
+docker build -t green-api-max-chat:local .
+docker run --rm -p 8080:8080 green-api-max-chat:local
+```
+
+Откройте `http://127.0.0.1:8080`, введите ключи инстанса в UI (как при локальном dev). Healthcheck: `GET /health`.
+
+Сборка включает `VITE_GREEN_API_SAME_ORIGIN_PROXY=true` — клиент ходит на API через nginx, allowlist только хосты `*.api.greenapi.com`, `*.api.green-api.com`, `api.green-api.com`, `api.greenapi.com`.
+
+## Переменные окружения (сборка / CI)
+
+| Переменная | Где | Назначение |
+|------------|-----|------------|
+| `VITE_GREEN_API_SAME_ORIGIN_PROXY` | `.env` / `docker build --build-arg` | `true` — в prod-сборке использовать `/green-api-proxy` (Docker/nginx) |
+| `GITHUB_PAGES` | CI / локально | `true` — base path для GitHub Pages |
+| `CYPRESS` | E2E | `1` — strict port Vite для Cypress |
+
+Секреты инстанса (**не** в образ и **не** в git):
+
+- Локально Cypress: `cypress.env.json` (см. `cypress.env.example.json`)
+- GitHub Actions live E2E (опционально): `GREEN_API_ID_INSTANCE`, `GREEN_API_TOKEN`, `GREEN_API_URL`, опционально `GREEN_API_CHAT_ID`
+
+> **Безопасность:** `apiTokenInstance` и `partnerToken` вводятся только в браузере или в CI-секретах. В Docker-образ попадает лишь собранный статический `dist/` — **токены в image не запекаются**.
+
+## CI/CD
+
+Workflows в `.github/workflows/`:
+
+| Workflow | Триггер | Что делает |
+|----------|---------|------------|
+| **ci.yml** | push/PR → `main` | `npm ci`, lint, Vitest, build, `docker build`; Cypress **03** (демо, без секретов); live Cypress **01–05** — только если заданы секреты `GREEN_API_*` |
+| **deploy.yml** | push `main`, теги `v*.*.*`, `workflow_dispatch` | Сборка и push образа в **GHCR** (`ghcr.io/<owner>/<repo>`); GitHub Pages — **только вручную** (`publish_pages=true`) |
+
+**Статический хостинг** (Vercel, GitHub Pages, S3): CORS к GREEN-API из браузера может блокироваться — нужен свой backend-прокси или используйте **Docker-образ** как полное решение.
+
+**Vercel:** `vercel.json` — SPA rewrite; без серверного прокси API-запросы могут не пройти CORS.
+
 Проверки перед сдачей:
 
 ```bash
@@ -33,7 +81,9 @@ npm run test:e2e
 2. Укажите `idInstance`, `apiTokenInstance`, `apiUrl` **как в кабинете** (например `https://7107.api.greenapi.com`). В `npm run dev` прокси включается автоматически.
 3. Запуск: `npm run test:e2e` (поднимает Vite на порту **43128** и гоняет Cypress).
 
-Сценарии: live `getStateInstance`, UI-вход → экран QR, демо register/partner/instance-qr.
+Сценарии: live `getStateInstance`, UI-вход → экран QR, демо register/partner/instance-qr, **05-live-send-receive** (SendMessage API+UI, ReceiveNotification/delete, опционально входящее в UI).
+
+Для **05** нужны `chatId` (номер или ID чата MAX) и **`authorized`** инстанс. Входящее в UI: во время прогона (~2 мин) отправьте с MAX на инстанс текст `e2e-in-…` из лога Cypress, либо задайте `incomingMarker` и `requireIncoming: true`.
 
 ## Учётные данные и «аккаунт» в приложении
 
@@ -101,14 +151,15 @@ npm run test:e2e
 ## Ограничения
 
 - Только **текст**; медиа и статусы не отображаются.
-- Нет серверной части: запросы идут из браузера. При блокировке **CORS** со стороны API может потребоваться прокси (в dev настроен заготовленный proxy `/green-api-proxy` в `vite.config.ts` — при необходимости можно доработать клиент).
+- Без Docker запросы идут из браузера напрямую; **CORS** может блокировать API. В **dev** — прокси Vite; в **production** — Docker/nginx (`/green-api-proxy`) или свой backend.
 - Один активный опрос на вкладку; при нескольких вкладках возможны конфликты очереди.
 - Состояние чатов хранится локально в браузере.
 
 ## Деплой
 
-- **Vercel**: конфиг `vercel.json` (SPA rewrite). Подключите репозиторий в Vercel, build command: `npm run build`, output: `dist`.
-- **GitHub Pages**: workflow `.github/workflows/deploy-pages.yml` (при необходимости измените `base` в `vite.config.ts` под имя репозитория).
+- **Docker / GHCR** (рекомендуется): `deploy.yml` → образ с nginx + CORS-прокси; `docker pull ghcr.io/<owner>/<repo>:main`.
+- **Vercel**: `vercel.json` (SPA rewrite). Build: `npm run build`, output: `dist` — **без** same-origin прокси, возможен CORS.
+- **GitHub Pages**: вручную через `deploy.yml` → `workflow_dispatch` + `publish_pages=true`; `GITHUB_PAGES=true` при сборке.
 
 ### Ссылка на деплой
 
@@ -161,7 +212,8 @@ _Добавьте URL после публикации, например: `https:
 ## Структура проекта
 
 ```
-src/api/          — клиент GREEN-API, разбор уведомлений, chatId, storage
+docker/           — nginx.conf (SPA + green-api-proxy allowlist)
+src/api/          — клиент GREEN-API, same-origin прокси (devProxy.ts), уведомления
 src/hooks/        — опрос ReceiveNotification
 src/components/   — экран входа и layout чата
 src/styles/       — theme.css (CSS-переменные), global.css, ui.module.css

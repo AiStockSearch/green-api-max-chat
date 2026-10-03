@@ -90,7 +90,7 @@ export function NewChatPanel({ open, value, onChange, onSubmit, onClose, error }
             <button type="button" className={styles.cancelBtn} onClick={onClose}>
               Отмена
             </button>
-            <button type="submit" className={styles.submitBtn}>
+            <button type="submit" className={styles.submitBtn} data-cy="new-chat-submit">
               Создать чат
               <Icon name="arrow_forward" size="sm" />
             </button>

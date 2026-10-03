@@ -1,51 +1,68 @@
 import { normalizeApiUrl } from './apiUrl'
 
-function shouldUseDevProxy(): boolean {
-  return (
-    import.meta.env.DEV &&
-    import.meta.env.MODE !== 'test' &&
-    typeof window !== 'undefined'
-  )
+/** Разрешённые upstream-хосты GREEN-API (синхронно с nginx allowlist). */
+export const GREEN_API_UPSTREAM_HOST =
+  /^(?:\d+\.api\.(?:greenapi|green-api)\.com|api\.(?:greenapi|green-api)\.com)$/i
+
+function shouldUseSameOriginProxy(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  if (import.meta.env.DEV && import.meta.env.MODE !== 'test') {
+    return true
+  }
+  return import.meta.env.VITE_GREEN_API_SAME_ORIGIN_PROXY === 'true'
 }
 
-/**
- * Базовый origin API: в dev → same-origin прокси Vite.
- */
-export function resolveDevProxyBase(apiUrl: string): string {
-  const normalized = normalizeApiUrl(apiUrl)
-  if (!shouldUseDevProxy()) {
-    return normalized
-  }
+function proxyPathPrefix(apiOrigin: string): string | null {
   try {
-    const target = new URL(normalized)
+    const target = new URL(apiOrigin)
     if (
       target.hostname === window.location.hostname &&
       target.port === window.location.port
     ) {
-      return normalized
+      return null
     }
-    const numericHost = target.hostname.match(/^(\d+)\.api\.(greenapi\.com|green-api\.com)$/i)
+    if (!GREEN_API_UPSTREAM_HOST.test(target.hostname)) {
+      return null
+    }
+    const numericHost = target.hostname.match(/^(\d+)\.api\.(greenapi|green-api)\.com$/i)
     if (numericHost) {
-      return `${window.location.origin}/green-api-proxy/${numericHost[1]}`
+      return `/green-api-proxy/${numericHost[1]}`
     }
-    return `${window.location.origin}/green-api-proxy/${encodeURIComponent(target.hostname)}`
+    return `/green-api-proxy/${target.hostname}`
   } catch {
-    return normalized
+    return null
   }
 }
 
-/** Полный URL запроса с учётом dev-прокси. */
+/**
+ * Базовый origin API: same-origin прокси в dev или при VITE_GREEN_API_SAME_ORIGIN_PROXY.
+ */
+export function resolveDevProxyBase(apiUrl: string): string {
+  const normalized = normalizeApiUrl(apiUrl)
+  if (!shouldUseSameOriginProxy()) {
+    return normalized
+  }
+  const prefix = proxyPathPrefix(normalized)
+  if (!prefix) {
+    return normalized
+  }
+  return `${window.location.origin}${prefix}`
+}
+
+/** Полный URL запроса с учётом same-origin прокси. */
 export function resolveDevProxyFetchUrl(absoluteUrl: string): string {
-  if (!shouldUseDevProxy()) {
+  if (!shouldUseSameOriginProxy()) {
     return absoluteUrl
   }
   try {
     const parsed = new URL(absoluteUrl)
-    const proxyBase = resolveDevProxyBase(parsed.origin)
-    if (proxyBase === parsed.origin) {
+    const prefix = proxyPathPrefix(parsed.origin)
+    if (!prefix) {
       return absoluteUrl
     }
-    return `${proxyBase}${parsed.pathname}${parsed.search}`
+    return `${window.location.origin}${prefix}${parsed.pathname}${parsed.search}`
   } catch {
     return absoluteUrl
   }

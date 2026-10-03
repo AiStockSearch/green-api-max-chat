@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
         target: 'https://api.green-api.com',
         changeOrigin: true,
         secure: true,
-        router(req) {
+        router(req: { url?: string }) {
           const raw = req.url ?? ''
           const legacy = raw.match(/^\/green-api-proxy\/(\d+)(\/|$)/)
           if (legacy) {

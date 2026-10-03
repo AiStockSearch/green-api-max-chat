@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Docker build
+        run: docker build -t green-api-max-chat:ci .
+
+  cypress-demo:
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Cypress (demo specs, без секретов)
+        run: |
+          CYPRESS=1 npx start-server-and-test \
+            "npm run dev -- --port 43128 --host 127.0.0.1" \
+            http://127.0.0.1:43128 \
+            "npx cypress run --spec cypress/e2e/03-partner-register-demo.cy.ts"
+
+  cypress-live:
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Check live secrets
+        id: gate
+        env:
+          GREEN_API_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
+          GREEN_API_ID_INSTANCE: ${{ secrets.GREEN_API_ID_INSTANCE }}
+          GREEN_API_URL: ${{ secrets.GREEN_API_URL }}
+        run: |
+          if [ -n "$GREEN_API_TOKEN" ] && [ -n "$GREEN_API_ID_INSTANCE" ] && [ -n "$GREEN_API_URL" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Live Cypress skipped: GREEN_API_ID_INSTANCE, GREEN_API_TOKEN, GREEN_API_URL not set"
+          fi
+
+      - run: npm ci
+        if: steps.gate.outputs.run == 'true'
+
+      - name: Write cypress.env.json from secrets
+        if: steps.gate.outputs.run == 'true'
+        env:
+          GREEN_API_ID_INSTANCE: ${{ secrets.GREEN_API_ID_INSTANCE }}
+          GREEN_API_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
+          GREEN_API_URL: ${{ secrets.GREEN_API_URL }}
+          GREEN_API_CHAT_ID: ${{ secrets.GREEN_API_CHAT_ID }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+          const cfg = {
+            idInstance: process.env.GREEN_API_ID_INSTANCE,
+            apiTokenInstance: process.env.GREEN_API_TOKEN,
+            apiUrl: process.env.GREEN_API_URL,
+            apiUrlDirect: process.env.GREEN_API_URL,
+            chatId: process.env.GREEN_API_CHAT_ID || '',
+            requireIncoming: false,
+          }
+          fs.writeFileSync('cypress.env.json', JSON.stringify(cfg, null, 2))
+          NODE
+
+      - name: Cypress (live specs)
+        if: steps.gate.outputs.run == 'true'
+        run: npm run cy:run -- --spec "cypress/e2e/01-api-credentials.cy.ts,cypress/e2e/02-instance-login-auth.cy.ts,cypress/e2e/04-instance-qr-live.cy.ts,cypress/e2e/05-live-send-receive.cy.ts"

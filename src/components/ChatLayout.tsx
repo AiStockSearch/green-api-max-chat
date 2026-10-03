@@ -455,7 +455,7 @@ export function ChatLayout({
   }
 
   return (
-    <div className={shellClass}>
+    <div className={shellClass} data-ui="chat-shell">
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHead}>
           <div className={styles.brandBlock}>
@@ -742,6 +742,7 @@ export function ChatLayout({
               </button>
               <div className={styles.composerInputWrap}>
                 <textarea
+                  data-cy="composer-input"
                   className={styles.composerInput}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -761,6 +762,7 @@ export function ChatLayout({
               </button>
               <button
                 type="button"
+                data-cy="send-message"
                 className={styles.sendBtn}
                 title="Отправить"
                 disabled={sending || !draft.trim()}
