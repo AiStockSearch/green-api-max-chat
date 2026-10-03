@@ -5,6 +5,7 @@ import {
   buildWhatsAppQrPageUrl,
   chatMatchesId,
   extractWhatsAppText,
+  parseWhatsAppHistoryItem,
   parseWhatsAppNotification,
   qrErrorNeedsLogout,
   whatsappChatId,
@@ -170,5 +171,56 @@ describe('lid mapping', () => {
     expect(chatMatchesId(chat, '155508384256027@lid', eq)).toBe(true)
     expect(chatMatchesId(chat, '79990000000@c.us', eq)).toBe(true)
     expect(chatMatchesId(chat, '1@lid', eq)).toBe(false)
+  })
+})
+
+describe('parseWhatsAppHistoryItem (GetChatHistory)', () => {
+  const chatId = '79990000000@c.us'
+  it('входящее textMessage и исходящее extendedTextMessage', () => {
+    expect(
+      parseWhatsAppHistoryItem(
+        {
+          type: 'incoming',
+          idMessage: 'a',
+          timestamp: 10,
+          typeMessage: 'textMessage',
+          chatId,
+          textMessage: ' привет ',
+          senderName: 'Лена',
+        },
+        chatId,
+      ),
+    ).toEqual({
+      chatId,
+      text: 'привет',
+      idMessage: 'a',
+      timestamp: 10000,
+      senderName: 'Лена',
+      direction: 'incoming',
+    })
+    expect(
+      parseWhatsAppHistoryItem(
+        {
+          type: 'outgoing',
+          idMessage: 'b',
+          timestamp: 5,
+          typeMessage: 'extendedTextMessage',
+          chatId,
+          extendedTextMessage: { text: 'тест' },
+        },
+        chatId,
+      )?.direction,
+    ).toBe('outgoing')
+  })
+  it('медиа и пустой текст — null', () => {
+    expect(
+      parseWhatsAppHistoryItem({ type: 'incoming', typeMessage: 'imageMessage' }, chatId),
+    ).toBeNull()
+    expect(
+      parseWhatsAppHistoryItem(
+        { type: 'outgoing', typeMessage: 'textMessage', textMessage: ' ' },
+        chatId,
+      ),
+    ).toBeNull()
   })
 })

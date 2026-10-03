@@ -272,6 +272,8 @@
     <li><kbd>Enter</kbd> отправляет сообщение, <kbd>Shift</kbd>+<kbd>Enter</kbd> переносит строку. Используется <code>POST sendMessage</code>. Если отправка не удалась, сообщение помечается «Не отправлено», рядом кнопка «Повторить».</li>
     <li>Приём (<code>src/hooks/useNotificationPolling.ts</code>): для каждого авторизованного инстанса работает свой цикл <code>receiveNotification</code> (long polling 5 с) и <code>deleteNotification</code>. Текст из <code>textMessage</code> и <code>extendedTextMessage</code> попадает в чат с тем же chatId (<code>79990000000@c.us</code> и <code>79990000000</code> считаются одним чатом).</li>
     <li>Исходящие с телефона (<code>outgoingMessageReceived</code>) и через API (<code>outgoingAPIMessageReceived</code>) показываются как исходящие. Дубли по <code>idMessage</code> отбрасываются. Каждое уведомление подтверждается, поэтому очередь не застревает.</li>
+    <li>WhatsApp: при открытии чата подгружается история (<code>getChatHistory</code>, последние 50 текстовых сообщений), поэтому видна переписка, отправленная и полученная до запуска приложения. Временные ошибки (429, сбой сети) не останавливают опрос очереди.</li>
+    <li><strong>Проверено вживую на WhatsApp: отправка из приложения и приём ответа со второго номера</strong> (3 октября 2026).</li>
   </ol>
   <div class="grid2">
     <figure><img src="screenshots/14-new-chat-modal.png" alt="Новый чат с выбором инстанса" loading="lazy"><figcaption>Рис. 16. «Новый чат» с выбором инстанса.</figcaption></figure>

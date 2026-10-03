@@ -61,6 +61,8 @@ interface Props {
   onPollError: (error: string | null) => void
   initialModalOpen?: boolean
   defaultSelectedChatId?: string
+  /** Открыт чат — подгрузить историю (WhatsApp GetChatHistory) */
+  onChatOpen?: (chat: Chat) => void
 }
 
 function nowMs(): number {
@@ -88,6 +90,7 @@ export function ChatLayout({
   onPollError,
   initialModalOpen = false,
   defaultSelectedChatId,
+  onChatOpen,
 }: Props) {
   const demoVariant = getDemoVariant()
   const online = useOnline()
@@ -172,6 +175,14 @@ export function ChatLayout({
     : []
 
   const messageGroups = groupMessagesByDay(chatMessages)
+
+  // История при открытии чата (один раз на чат за сессию — дальше приходят уведомления)
+  const historyLoadedRef = useRef(new Set<string>())
+  useEffect(() => {
+    if (!selectedChat || !onChatOpen || historyLoadedRef.current.has(selectedChat.id)) return
+    historyLoadedRef.current.add(selectedChat.id)
+    onChatOpen(selectedChat)
+  }, [selectedChat, onChatOpen])
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

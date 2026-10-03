@@ -6,8 +6,10 @@ import type {
   ParsedChatMessage,
   StoredMessage,
 } from './api/types'
+import { GreenApiError } from './api/types'
 import { loadAuth, saveAuth, type PersistedAuth } from './api/credentialsStore'
 import { getStateInstance, logoutInstance } from './api/greenApi'
+import { adapterFor } from './api/messengers'
 import { parseStateInstance } from './api/instanceState'
 import type { Messenger } from './api/messenger'
 import type { PartnerCredentials } from './api/partnerApi'
@@ -192,8 +194,15 @@ function App() {
           try {
             const state = parseStateInstance(await getStateInstance(p))
             setStates((prev) => ({ ...prev, [p.id]: state }))
-          } catch {
-            setStates((prev) => ({ ...prev, [p.id]: 'error' }))
+          } catch (err) {
+            // 429 / сбой сети — временные: известный статус не сбрасываем, иначе поллер
+            // инстанса размонтируется и входящие перестанут приходить. 401/403 → 'error'.
+            const transient =
+              err instanceof GreenApiError && (err.status === undefined || err.status === 429)
+            setStates((prev) => ({
+              ...prev,
+              [p.id]: transient && prev[p.id] && prev[p.id] !== 'error' ? prev[p.id] : 'error',
+            }))
           }
         }),
       )
@@ -251,6 +260,26 @@ function App() {
       handleMessagesChange(next.messages)
     },
     [handleMessagesChange, saveChatList],
+  )
+
+  /** Открыт чат: история из API (WhatsApp GetChatHistory) с дедупом по idMessage. */
+  const handleChatOpen = useCallback(
+    async (chat: Chat) => {
+      if (demo) return
+      const profile =
+        profiles.find((p) => p.id === chat.instanceId) ??
+        (!chat.instanceId ? profiles[0] : undefined)
+      const load = profile ? adapterFor(profile).loadHistory : undefined
+      if (!profile || !load) return
+      let history: ParsedChatMessage[]
+      try {
+        history = await load(profile, chat.chatId)
+      } catch {
+        return // история — дополнение; ошибки не мешают чату и опросу уведомлений
+      }
+      for (const m of history) handleIncoming(profile.id, { ...m, chatId: chat.chatId })
+    },
+    [demo, handleIncoming, profiles],
   )
 
   const handlePollError = useCallback((id: string, error: string | null) => {
@@ -497,6 +526,7 @@ function App() {
         }}
         initialModalOpen={demoVariant === 'modal'}
         defaultSelectedChatId={defaultChatIdForDemo(demoVariant)}
+        onChatOpen={handleChatOpen}
       />
     </>
   )

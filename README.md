@@ -164,7 +164,7 @@ npm run test:e2e
 1. В настройках инстанса **очистите поле webhookUrl** (если задан свой webhook, HTTP API-очередь недоступна).
 2. Включите получение уведомлений о **входящих сообщениях** (в кабинете или через SetSettings).
 
-Приложение в фоне опрашивает `receiveNotification` (таймаут 5 с), показывает текстовые ответы в соответствующем чате и подтверждает обработку через `deleteNotification(receiptId)`. Прочие типы webhook игнорируются, но уведомление всё равно удаляется из очереди.
+Приложение в фоне опрашивает `receiveNotification` (таймаут 5 с), показывает текстовые ответы в соответствующем чате и подтверждает обработку через `deleteNotification(receiptId)`. Прочие типы webhook игнорируются, но уведомление всё равно удаляется из очереди. Временные ошибки (429 Too Many Requests, сбой сети) не останавливают опрос: цикл повторяет запрос, а статус инстанса не сбрасывается.
 
 ## Сценарий использования
 
@@ -185,6 +185,9 @@ npm run test:e2e
 | Новый чат | — | **CheckWhatsapp**: проверка аккаунта; если API вернул `…@lid`, он сохраняется как алиас чата, и ответы с lid попадают в тот же диалог |
 | Уведомления | `incomingMessageReceived` + `textMessage` | также `extendedTextMessage`/`quotedMessage` (`extendedTextMessageData.text`) и исходящие `outgoingMessageReceived` (с телефона) / `outgoingAPIMessageReceived` (через API) |
 | QR | `qr.green-api.com/waInstance{id}/{token}/v3`, 2FA `sendAuthorizationPassword` | `qr.green-api.com/waInstance{id}/{token}`; при ошибке QR «You need to make log out» — кнопка **Logout** и новый QR |
+| История | — | при открытии чата **GetChatHistory** (последние 50, только текст): видны сообщения, отправленные и полученные до запуска приложения; дубли с очередью отбрасываются по `idMessage` |
+
+**Проверено вживую на WhatsApp: отправка из приложения и приём ответа со второго номера** (3 октября 2026): сообщение ушло через `sendMessage` из UI, ответ с телефона собеседника пришёл через очередь `receiveNotification` и показан в том же чате вместе с историей.
 
 Прокси (Vite в dev и nginx в Docker) пропускает те же хосты: `*.api.greenapi.com`, `*.api.green-api.com`, `api.green-api.com`, `api.greenapi.com`.
 

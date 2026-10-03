@@ -29,6 +29,8 @@ export interface MessengerAdapter {
   qrNeedsLogout(message: string): boolean
   /** Проверка получателя перед созданием чата (WhatsApp: CheckWhatsapp) */
   checkRecipient?(credentials: GreenApiCredentials, chatId: string): Promise<RecipientCheck>
+  /** История чата при открытии (WhatsApp: GetChatHistory), старые → новые */
+  loadHistory?(credentials: GreenApiCredentials, chatId: string): Promise<ParsedChatMessage[]>
   readonly newChatLabel: string
   readonly newChatPlaceholder: string
   readonly newChatHint: string

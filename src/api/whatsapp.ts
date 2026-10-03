@@ -1,4 +1,5 @@
 import { normalizePhone } from './chatId'
+import type { ChatHistoryItem } from './greenApi'
 import type { GreenApiCredentials, IncomingWebhookBody, ParsedChatMessage } from './types'
 
 /** Суффиксы chatId WhatsApp: личный чат и группа. */
@@ -129,4 +130,36 @@ export function chatMatchesId(
     return true
   }
   return (chat.aliases ?? []).some((a) => match(a, incomingChatId))
+}
+
+/**
+ * Элемент GetChatHistory → текстовое сообщение чата (или null для медиа/служебных).
+ * Нужен, чтобы при открытии чата показать переписку, отправленную/полученную до запуска приложения
+ * (уведомления из очереди приходят только один раз).
+ */
+export function parseWhatsAppHistoryItem(
+  item: ChatHistoryItem,
+  chatId: string,
+): ParsedChatMessage | null {
+  if (item.type !== 'incoming' && item.type !== 'outgoing') {
+    return null
+  }
+  const raw =
+    item.typeMessage === 'textMessage'
+      ? item.textMessage
+      : item.typeMessage === 'extendedTextMessage' || item.typeMessage === 'quotedMessage'
+        ? (item.extendedTextMessage?.text ?? item.textMessage)
+        : undefined
+  const text = raw?.trim()
+  if (!text) {
+    return null
+  }
+  return {
+    chatId: item.chatId ?? chatId,
+    text,
+    idMessage: item.idMessage,
+    timestamp: item.timestamp ? item.timestamp * 1000 : undefined,
+    senderName: item.type === 'incoming' ? (item.senderName ?? item.senderContactName) : undefined,
+    direction: item.type,
+  }
 }

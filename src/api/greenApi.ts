@@ -1,11 +1,7 @@
 import { reportNetworkFailure } from '../pwa/networkStatus'
 import { normalizeApiUrl } from './apiUrl'
 import { resolveDevProxyFetchUrl } from './devProxy'
-import type {
-  GreenApiCredentials,
-  ReceiveNotificationResponse,
-  SendMessageResponse,
-} from './types'
+import type { GreenApiCredentials, ReceiveNotificationResponse, SendMessageResponse } from './types'
 import { GreenApiError } from './types'
 
 export { normalizeApiUrl } from './apiUrl'
@@ -42,14 +38,15 @@ async function requestJson<T>(
     throw new GreenApiError('Неверный apiTokenInstance (401 Unauthorized)', 401)
   }
   if (response.status === 403) {
-    throw new GreenApiError(
-      'Доступ запрещён (403). Проверьте idInstance и apiUrl.',
-      403,
-    )
+    throw new GreenApiError('Доступ запрещён (403). Проверьте idInstance и apiUrl.', 403)
   }
 
   const text = await response.text()
   if (!text) {
+    if (!response.ok) {
+      // например 429 Too Many Requests приходит с пустым телом — это ошибка, а не «нет данных»
+      throw new GreenApiError(`Ошибка API (${response.status})`, response.status)
+    }
     return { data: null, response }
   }
 
@@ -214,4 +211,32 @@ export async function sendAuthorizationCode(
     body: JSON.stringify(password ? { code, password } : { code }),
   })
   return data ?? {}
+}
+
+/** Элемент ответа GetChatHistory (WhatsApp). */
+export interface ChatHistoryItem {
+  type?: 'incoming' | 'outgoing' | string
+  idMessage?: string
+  timestamp?: number
+  typeMessage?: string
+  chatId?: string
+  senderId?: string
+  senderName?: string
+  senderContactName?: string
+  textMessage?: string
+  extendedTextMessage?: { text?: string }
+}
+
+/** POST getChatHistory — последние сообщения чата (WhatsApp), только чтение. */
+export async function getChatHistory(
+  credentials: GreenApiCredentials,
+  chatId: string,
+  count = 50,
+): Promise<ChatHistoryItem[]> {
+  const url = instancePath(credentials, 'getChatHistory')
+  const { data } = await requestJson<ChatHistoryItem[]>(url, {
+    method: 'POST',
+    body: JSON.stringify({ chatId, count }),
+  })
+  return Array.isArray(data) ? data : []
 }

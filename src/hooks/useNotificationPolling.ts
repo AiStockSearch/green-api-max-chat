@@ -11,13 +11,20 @@ interface Options {
   onError: (error: string) => void
 }
 
+/**
+ * Цикл ReceiveNotification → обработка → DeleteNotification.
+ *
+ * У каждого запуска эффекта свой цикл и свой флаг `cancelled`. Раньше общий `runningRef`
+ * блокировал новый цикл, пока старый ждал ответа: после повторного запуска эффекта
+ * (React StrictMode, смена объекта credentials) старый цикл завершался после первого ответа,
+ * а новый так и не стартовал — входящие переставали приходить.
+ */
 export function useNotificationPolling({
   credentials,
   enabled,
   onMessage,
   onError,
 }: Options): void {
-  const runningRef = useRef(false)
   const onMessageRef = useRef(onMessage)
   const onErrorRef = useRef(onError)
 
@@ -26,52 +33,51 @@ export function useNotificationPolling({
     onErrorRef.current = onError
   }, [onMessage, onError])
 
+  const idInstance = credentials?.idInstance
+  const apiTokenInstance = credentials?.apiTokenInstance
+  const apiUrl = credentials?.apiUrl
+  const messenger = credentials?.messenger
+
   useEffect(() => {
-    if (!credentials || !enabled) {
+    if (!enabled || !idInstance || !apiTokenInstance || !apiUrl) {
       return
     }
-
+    const creds: GreenApiCredentials = { idInstance, apiTokenInstance, apiUrl, messenger }
     let cancelled = false
 
     const loop = async () => {
-      if (cancelled || runningRef.current) {
-        return
-      }
-      runningRef.current = true
-      try {
-        while (!cancelled) {
-          let notification
-          try {
-            notification = await receiveNotification(credentials, 5)
-          } catch (err) {
-            const message =
-              err instanceof GreenApiError
-                ? (err.details ?? err.message)
-                : err instanceof Error
-                  ? err.message
-                  : 'Ошибка опроса уведомлений'
-            onErrorRef.current(message)
-            await sleep(3000)
-            continue
-          }
-
-          if (!notification) {
-            continue
-          }
-
-          const parsed = parseNotificationFor(credentials, notification.body)
-          if (parsed) {
-            onMessageRef.current(parsed)
-          }
-
-          try {
-            await deleteNotification(credentials, notification.receiptId)
-          } catch {
-            // Повторная обработка маловероятна; не блокируем цикл
-          }
+      while (!cancelled) {
+        let notification
+        try {
+          notification = await receiveNotification(creds, 5)
+        } catch (err) {
+          if (cancelled) return
+          const message =
+            err instanceof GreenApiError
+              ? (err.details ?? err.message)
+              : err instanceof Error
+                ? err.message
+                : 'Ошибка опроса уведомлений'
+          onErrorRef.current(message)
+          await sleep(3000)
+          continue
         }
-      } finally {
-        runningRef.current = false
+
+        // Эффект перезапущен, пока ждали ответа: уведомление не удаляем — его заберёт новый цикл
+        if (cancelled || !notification) {
+          continue
+        }
+
+        const parsed = parseNotificationFor(creds, notification.body)
+        if (parsed) {
+          onMessageRef.current(parsed)
+        }
+
+        try {
+          await deleteNotification(creds, notification.receiptId)
+        } catch {
+          // Повторная обработка безопасна (дедуп по idMessage); не блокируем цикл
+        }
       }
     }
 
@@ -80,7 +86,7 @@ export function useNotificationPolling({
     return () => {
       cancelled = true
     }
-  }, [credentials, enabled])
+  }, [enabled, idInstance, apiTokenInstance, apiUrl, messenger])
 }
 
 function sleep(ms: number): Promise<void> {

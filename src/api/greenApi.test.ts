@@ -119,3 +119,16 @@ describe('deleteNotification', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('/deleteNotification/test-token/99')
   })
 })
+
+describe('пустой ответ с ошибкой', () => {
+  it('429 с пустым телом → GreenApiError(429), а не null', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 429, text: async () => '' }),
+    )
+    await expect(getStateInstance(creds)).rejects.toMatchObject({
+      name: 'GreenApiError',
+      status: 429,
+    })
+  })
+})

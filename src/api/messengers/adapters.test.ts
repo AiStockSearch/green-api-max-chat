@@ -67,6 +67,42 @@ describe('WhatsApp adapter', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain('/waInstance1101000001/checkWhatsapp/tok')
   })
 
+  it('loadHistory → GetChatHistory, старые сообщения первыми', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            type: 'incoming',
+            idMessage: 'n',
+            timestamp: 2,
+            typeMessage: 'textMessage',
+            textMessage: 'ответ',
+          },
+          {
+            type: 'outgoing',
+            idMessage: 'o',
+            timestamp: 1,
+            typeMessage: 'extendedTextMessage',
+            extendedTextMessage: { text: 'вопрос' },
+          },
+          { type: 'incoming', idMessage: 'img', timestamp: 0, typeMessage: 'imageMessage' },
+        ]),
+        { status: 200 },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await a.loadHistory!(creds, '79990000000@c.us')
+    expect(res.map((m) => [m.direction, m.text])).toEqual([
+      ['outgoing', 'вопрос'],
+      ['incoming', 'ответ'],
+    ])
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/waInstance1101000001/getChatHistory/tok')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      chatId: '79990000000@c.us',
+      count: 50,
+    })
+  })
+
   it('checkRecipient: группа без запроса', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

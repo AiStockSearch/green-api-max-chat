@@ -1,7 +1,8 @@
-import { checkWhatsapp } from '../greenApi'
+import { checkWhatsapp, getChatHistory } from '../greenApi'
 import {
   aliasesFromCheckWhatsapp,
   buildWhatsAppQrPageUrl,
+  parseWhatsAppHistoryItem,
   parseWhatsAppNotification,
   qrErrorNeedsLogout,
   whatsappChatId,
@@ -26,6 +27,13 @@ export const whatsappAdapter: MessengerAdapter = {
       exists: res.existsWhatsapp !== false,
       aliases: aliasesFromCheckWhatsapp(chatId, res),
     }
+  },
+  async loadHistory(credentials, chatId) {
+    const items = await getChatHistory(credentials, chatId, 50)
+    return items
+      .map((item) => parseWhatsAppHistoryItem(item, chatId))
+      .filter((m): m is NonNullable<typeof m> => m !== null)
+      .reverse()
   },
   newChatLabel: 'Номер телефона',
   newChatPlaceholder: '+7 (___) ___-__-__',
