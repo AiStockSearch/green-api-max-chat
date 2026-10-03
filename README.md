@@ -1,9 +1,7 @@
 # GREEN-API MAX Chat (тестовое задание)
 
-<!-- Badges (подставьте org/repo после публикации на GitHub) -->
-<!-- ![CI](https://github.com/ORG/REPO/actions/workflows/ci.yml/badge.svg) -->
-<!-- ![Deploy](https://github.com/ORG/REPO/actions/workflows/deploy.yml/badge.svg) -->
-<!-- ![GHCR](https://ghcr.io/ORG/REPO:latest) -->
+![CI](https://github.com/Js-Nanodegree/green-api-max-chat/actions/workflows/ci.yml/badge.svg)
+![Deploy](https://github.com/Js-Nanodegree/green-api-max-chat/actions/workflows/deploy.yml/badge.svg)
 
 Небольшое веб-приложение на **React + TypeScript (Vite)** для отправки и приёма **текстовых** сообщений в мессенджере **MAX** через [GREEN-API](https://green-api.com). Интерфейс вдохновлён [web.max.ru](https://web.max.ru): список чатов слева, переписка с пузырями справа.
 
@@ -13,6 +11,13 @@
 - CSS Modules (без тяжёлых UI-библиотек)
 - Vitest — unit-тесты API-слоя
 - ESLint + Prettier
+
+## Клонирование
+
+```bash
+git clone https://github.com/Js-Nanodegree/green-api-max-chat.git
+cd green-api-max-chat
+```
 
 ## Локальный запуск
 
@@ -60,7 +65,7 @@ Workflows в `.github/workflows/`:
 | Workflow | Триггер | Что делает |
 |----------|---------|------------|
 | **ci.yml** | push/PR → `main` | `npm ci`, lint, Vitest, build, `docker build`; Cypress **03** (демо, без секретов); live Cypress **01–05** — только если заданы секреты `GREEN_API_*` |
-| **deploy.yml** | push `main`, теги `v*.*.*`, `workflow_dispatch` | Сборка и push образа в **GHCR** (`ghcr.io/<owner>/<repo>`); GitHub Pages — **только вручную** (`publish_pages=true`) |
+| **deploy.yml** | push `main`, теги `v*.*.*`, `workflow_dispatch` | Сборка и push образа в **GHCR** (`ghcr.io/js-nanodegree/green-api-max-chat`); GitHub Pages — **только вручную** (`publish_pages=true`) |
 
 **Статический хостинг** (Vercel, GitHub Pages, S3): CORS к GREEN-API из браузера может блокироваться — нужен свой backend-прокси или используйте **Docker-образ** как полное решение.
 
@@ -157,7 +162,7 @@ npm run test:e2e
 
 ## Деплой
 
-- **Docker / GHCR** (рекомендуется): `deploy.yml` → образ с nginx + CORS-прокси; `docker pull ghcr.io/<owner>/<repo>:main`.
+- **Docker / GHCR** (рекомендуется): `deploy.yml` → образ с nginx + CORS-прокси; `docker pull ghcr.io/js-nanodegree/green-api-max-chat:main`.
 - **Vercel**: `vercel.json` (SPA rewrite). Build: `npm run build`, output: `dist` — **без** same-origin прокси, возможен CORS.
 - **GitHub Pages**: вручную через `deploy.yml` → `workflow_dispatch` + `publish_pages=true`; `GITHUB_PAGES=true` при сборке.
 
