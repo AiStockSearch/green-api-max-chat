@@ -28,6 +28,10 @@ function proxyPathPrefix(apiOrigin: string): string | null {
     }
     const numericHost = target.hostname.match(/^(\d+)\.api\.(greenapi|green-api)\.com$/i)
     if (numericHost) {
+      const tld = numericHost[2].toLowerCase()
+      if (tld === 'green-api.com') {
+        return `/green-api-proxy/${target.hostname}`
+      }
       return `/green-api-proxy/${numericHost[1]}`
     }
     return `/green-api-proxy/${target.hostname}`
