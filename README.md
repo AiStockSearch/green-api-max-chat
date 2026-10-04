@@ -12,6 +12,8 @@
 
 ![Экран «Инстансы»](docs/screenshots/08-instances-dashboard.png)
 
+🎬 **Видео-демо (2 мин):** [demo.mp4](https://aistocksearch.github.io/green-api-max-chat/demo.mp4) ([в репозитории](docs/demo.mp4)) — демо-режим и живой WhatsApp: отправка из приложения и приём ответа.
+
 ### Разделы руководства
 
 1. [Обзор: WhatsApp / Telegram / MAX, несколько инстансов, PWA](https://aistocksearch.github.io/green-api-max-chat/guide.html#step-1)

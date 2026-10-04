@@ -38,6 +38,7 @@ jobs:
       - name: Add guide, screenshots and SPA fallback
         run: |
           cp docs/guide.html dist/guide.html
+          cp docs/demo.mp4 dist/demo.mp4
           mkdir -p dist/screenshots
           cp docs/screenshots/*.png dist/screenshots/
           cp dist/index.html dist/404.html
